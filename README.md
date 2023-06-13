@@ -28,3 +28,4 @@ Before running the script, ensure that you have the following:
 3. Re-Run Shell Script: ./OpenCore-UEFI-Setup.sh  
 (Re-Running Shell Script won't delete files created)  
 4. You Now Can Install OpenCore on your system  
+can't install in Windows Subsystem for Linux (WSL)  
