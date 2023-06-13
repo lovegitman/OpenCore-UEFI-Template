@@ -1,4 +1,4 @@
-# -OpenCore-UEFI-Template
+# OpenCore-UEFI-Template
 
 automates the process of generating EFI keys and installing OpenCore on your system
 
