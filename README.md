@@ -38,11 +38,11 @@ windows:
 4. EFI keys, certificates, Microsoft certificates, EFI signature list files, and authorization files are generated or downloaded as needed
 5. The script creates a "Download" directory and downloads the latest OpenCore version
 6. will ask to install opencore on your system  
-YOU MUST MODIFY system-files FOLDER FOR YOUR SYSTEM
+YOU MUST MODIFY system-files FOLDER FOR YOUR SYSTEM  
 
-Adding Secure Boot Support:
-add UEFI Secure Boot support to your OpenCore config.plist file (system-files/config.plist)
-Locate the "Misc" section in the file. If it doesn't exist, add the following code to create it:
+Adding Secure Boot Support:  
+add UEFI Secure Boot support to your OpenCore config.plist file (system-files/config.plist)  
+Locate the "Misc" section in the file. If it doesn't exist, add the following code to create it:  
 <key>Misc</key>
 <dict>
 </dict>
