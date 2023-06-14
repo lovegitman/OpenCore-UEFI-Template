@@ -1,8 +1,8 @@
 # OpenCore-UEFI-Template
 
-automates the process of generating EFI keys and installing OpenCore on your system
-
-1. Checks internet connectivity and updates DNS configuration if needed.
+automates the process of generating EFI keys and installing OpenCore on your system  
+Linux:  
+1. Checks internet connectivity & updates name server if needed
 2. Installs required packages (openssl, unzip, mokutil, efitools) if not already installed.
 3. Generates EFI keys (PK, KEK, ISK) using OpenSSL.
 4. Downloads Microsoft certificates for EFI signature verification.
@@ -28,4 +28,6 @@ Linux:
 (anything in system-files folder will be copied into Download/X64/EFI/OC/ folder overriding files)  
 3. Re-Run Shell Script: ./OpenCore-UEFI-Setup.sh  
 (Re-Running Shell Script won't delete files created)  
-4. You Now Can Install OpenCore on your system
+4. You Now Can Install OpenCore on your system  
+can't install in  Windows Subsystem for Linux (WSL)  
+
