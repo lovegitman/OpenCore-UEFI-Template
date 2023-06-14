@@ -40,24 +40,24 @@ windows:
 6. will ask to install opencore on your system  
 YOU MUST MODIFY system-files FOLDER FOR YOUR SYSTEM  
 
+```xml
 Adding Secure Boot Support:  
 add UEFI Secure Boot support to your OpenCore config.plist file (system-files/config.plist)  
 Locate the "Misc" section in the file. If it doesn't exist, add the following code to create it:  
-`<key>Misc</key>
+<key>Misc</key>
 <dict>
-</dict>`
+</dict>
 
 Inside the "Misc" section, add the following code to enable UEFI Secure Boot:
-`<key>Security</key>
+<key>Security</key>
 <dict>
     <key>SecureBootModel</key>
     <string>Default</string>
     <key>ScanPolicy</key>
     <integer>0</integer>
-</dict>`
+</dict>
 
 should look like:
-```xml
 <key>Misc</key>
 <dict>
     <key>Security</key>
