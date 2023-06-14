@@ -272,9 +272,9 @@ REM Specify the paths to your key and PEM certificate files
 set "key=%efikeys_dir%\ISK.key"
 set "pem_certificate=%efikeys_dir%\ISK.pem"
 
-REM Sign files in the X64-Signed directory and its subdirectories
-for /R "%X64_Signed%" %%G in (*.efi) do (
-    REM Sign the EFI binary using signtool.exe and override the original file
+REM Sign .kext, .aml, and .efi files in the X64-Signed directory and subdirectories
+for /R "%X64_Signed%" %%G in (*.kext *.aml *.efi) do (
+    REM Sign the file using signtool.exe and override the original file
     signtool.exe sign /f "%key%" /pem "%pem_certificate%" /fd SHA256 /tr http://timestamp.digicert.com /td sha256 /v "%%G"
 )
 
