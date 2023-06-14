@@ -43,17 +43,17 @@ YOU MUST MODIFY system-files FOLDER FOR YOUR SYSTEM
 Adding Secure Boot Support:  
 add UEFI Secure Boot support to your OpenCore config.plist file (system-files/config.plist)  
 Locate the "Misc" section in the file. If it doesn't exist, add the following code to create it:  
-<key>Misc</key>
+`<key>Misc</key>
 <dict>
-</dict>
+</dict>`
 
 Inside the "Misc" section, add the following code to enable UEFI Secure Boot:
-<key>Security</key>
+`<key>Security</key>
 <dict>
     <key>SecureBootModel</key>
     <string>Default</string>
     <key>ScanPolicy</key>
     <integer>0</integer>
-</dict>
+</dict>`
 
 The "SecureBootModel" key specifies the Secure Boot model to use. "Default" is a commonly used value, but you can change it if needed. The "ScanPolicy" key sets the policy for scanning and verifying UEFI bootloaders and drivers. A value of "0" disables scanning, allowing all UEFI binaries to be executed.
