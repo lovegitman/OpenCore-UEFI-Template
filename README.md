@@ -37,5 +37,5 @@ windows:
 3. The script automatically installs or updates required tools.
 4. EFI keys, certificates, Microsoft certificates, EFI signature list files, and authorization files are generated or downloaded as needed
 5. The script creates a "Download" directory and downloads the latest OpenCore version
-6. will ask to install opencore on your system
+6. will ask to install opencore on your system  
 YOU MUST MODIFY system-files FOLDER FOR YOUR SYSTEM
