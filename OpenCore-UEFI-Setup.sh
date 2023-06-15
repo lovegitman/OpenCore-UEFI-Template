@@ -197,7 +197,7 @@ dest_folder="$target_directory/X64-Signed"
 # Copy files with overwrite
 cp -r -f "$src_folder"/* "$dest_folder"
 
-# Specify key & PEM certificate files
+# Specify key & certificate file
 key="$efikeys_dir/ISK.key"
 certificate="$efikeys_dir/ISK.crt"
 
