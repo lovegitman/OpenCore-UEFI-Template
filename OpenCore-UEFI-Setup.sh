@@ -41,9 +41,9 @@ function check_installation {
             sudo dnf install -y $package_name
         else
             echo "Neither APT nor DNF package managers found. Unable to install $package_name."
+            exit 1
         fi
     else
-        echo "$package_name is already installed."
     fi
 }
 
@@ -55,95 +55,107 @@ check_installation "efitools"
 efikeys_dir="$script_dir/efikeys"
 if [ ! -d "$efikeys_dir" ]; then
   mkdir "$efikeys_dir"
-  echo "Created efikeys directory"
 else
-  echo "efikeys directory already exists"
 fi
+
+# Function to check if a file exists
+file_exists() {
+    [[ -f "$1" ]]
+}
+
+# Function to create a certificate and key pair
+create_cert_key() {
+    openssl req -new -x509 -newkey rsa:2048 -sha256 -nodes -subj "$1" -keyout "$2.key" -out "$2.crt"
+    openssl x509 -in "$2.crt" -outform DER -out "$2.der"
+    chmod 0600 "$2.key"
+}
+
+# Function to download a certificate
+download_cert() {
+    curl -o "$1.der" "$2"
+}
+
+# Function to create an EFI signature list file
+create_esl() {
+    cert-to-efi-sig-list -g $(uuidgen) "$1.crt" "$1.esl"
+}
+
+# Function to concatenate ESL files
+concat_esl() {
+    cat "$@" > "$1"
+}
+
+# Function to create an auth file
+create_auth() {
+    sign-efi-sig-list -k "$1.key" -c "$1.crt" "$2" "$3.esl" "$3.auth"
+    echo "'$3.auth' created successfully."
+}
 
 # Check if the files already exist before creating them
-if [[ ! -f $efikeys_dir/PK.key && ! -f $efikeys_dir/PK.pem ]]; then
-    openssl req -new -x509 -newkey rsa:2048 -sha256 -nodes -subj "/CN=OpenCore PK Platform Key/" -keyout $efikeys_dir/PK.key -out $efikeys_dir/PK.pem
-    chmod 0600 $efikeys_dir/PK.key
+if ! (file_exists "$efikeys_dir/PK.key" && file_exists "$efikeys_dir/PK.crt" && file_exists "$efikeys_dir/PK.der"); then
+    create_cert_key "/CN=OpenCore PK Platform Key/" "$efikeys_dir/PK"
 fi
 
-if [[ ! -f $efikeys_dir/KEK.key && ! -f $efikeys_dir/KEK.pem ]]; then
-    openssl req -new -x509 -newkey rsa:2048 -sha256 -nodes -subj "/CN=OpenCore KEK Exchange Key/" -keyout $efikeys_dir/KEK.key -out $efikeys_dir/KEK.pem
-    chmod 0600 $efikeys_dir/KEK.key
+if ! (file_exists "$efikeys_dir/KEK.key" && file_exists "$efikeys_dir/KEK.crt" && file_exists "$efikeys_dir/KEK.der"); then
+    create_cert_key "/CN=OpenCore KEK Exchange Key/" "$efikeys_dir/KEK"
 fi
 
-if [[ ! -f $efikeys_dir/ISK.key && ! -f $efikeys_dir/ISK.pem ]]; then
-    openssl req -new -x509 -newkey rsa:2048 -sha256 -nodes -subj "/CN=OpenCore ISK Image Signing Key/" -keyout $efikeys_dir/ISK.key -out $efikeys_dir/ISK.pem
-    chmod 0600 $efikeys_dir/ISK.key
+if ! (file_exists "$efikeys_dir/ISK.key" && file_exists "$efikeys_dir/ISK.crt" && file_exists "$efikeys_dir/ISK.der"); then
+    create_cert_key "/CN=OpenCore ISK Image Signing Key/" "$efikeys_dir/ISK"
 fi
 
-# Check if the Microsoft certificates already exist before downloading them
-if [[ ! -f $efikeys_dir/MicWinProPCA2011_2011-10-19.crt && ! -f $efikeys_dir/MicWinProPCA2011_2011-10-19.pem ]]; then
-    curl -o $efikeys_dir/MicWinProPCA2011_2011-10-19.crt https://www.microsoft.com/pkiops/certs/MicWinProPCA2011_2011-10-19.crt
-    openssl x509 -in $efikeys_dir/MicWinProPCA2011_2011-10-19.crt -inform DER -out $efikeys_dir/MicWinProPCA2011_2011-10-19.pem -outform PEM
+if ! (file_exists "$efikeys_dir/MicWinProPCA2011_2011-10-19.crt" && file_exists "$efikeys_dir/MicWinProPCA2011_2011-10-19.der"); then
+    download_cert "$efikeys_dir/MicWinProPCA2011_2011-10-19" "https://www.microsoft.com/pkiops/certs/MicWinProPCA2011_2011-10-19.crt"
 fi
 
-if [[ ! -f $efikeys_dir/MicCorUEFCA2011_2011-06-27.crt && ! -f $efikeys_dir/MicCorUEFCA2011_2011-06-27.pem ]]; then
-    curl -o $efikeys_dir/MicCorUEFCA2011_2011-06-27.crt https://www.microsoft.com/pkiops/certs/MicCorUEFCA2011_2011-06-27.crt
-    openssl x509 -in $efikeys_dir/MicCorUEFCA2011_2011-06-27.crt -inform DER -out $efikeys_dir/MicCorUEFCA2011_2011-06-27.pem -outform PEM
+if ! (file_exists "$efikeys_dir/MicCorUEFCA2011_2011-06-27.crt" && file_exists "$efikeys_dir/MicCorUEFCA2011_2011-06-27.der"); then
+    download_cert "$efikeys_dir/MicCorUEFCA2011_2011-06-27" "https://www.microsoft.com/pkiops/certs/MicCorUEFCA2011_2011-06-27.crt"
 fi
 
-# Check if the EFI signature list files already exist before creating them
-if [[ ! -f $efikeys_dir/PK.esl ]]; then
-    cert-to-efi-sig-list -g $(uuidgen) $efikeys_dir/PK.pem $efikeys_dir/PK.esl
+if ! file_exists "$efikeys_dir/PK.esl"; then
+    create_esl "$efikeys_dir/PK"
 fi
 
-if [[ ! -f $efikeys_dir/KEK.esl ]]; then
-    cert-to-efi-sig-list -g $(uuidgen) $efikeys_dir/KEK.pem $efikeys_dir/KEK.esl
+if ! file_exists "$efikeys_dir/KEK.esl"; then
+    create_esl "$efikeys_dir/KEK"
 fi
 
-if [[ ! -f $efikeys_dir/ISK.esl ]]; then
-    cert-to-efi-sig-list -g $(uuidgen) $efikeys_dir/ISK.pem $efikeys_dir/ISK.esl
+if ! file_exists "$efikeys_dir/ISK.esl"; then
+    create_esl "$efikeys_dir/ISK"
 fi
 
-if [[ ! -f $efikeys_dir/MicWinProPCA2011_2011-10-19.esl ]]; then
-    cert-to-efi-sig-list -g $(uuidgen) $efikeys_dir/MicWinProPCA2011_2011-10-19.pem $efikeys_dir/MicWinProPCA2011_2011-10-19.esl
+if ! file_exists "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl"; then
+    create_esl "$efikeys_dir/MicWinProPCA2011_2011-10-19"
 fi
 
-if [[ ! -f $efikeys_dir/MicCorUEFCA2011_2011-06-27.esl ]]; then
-    cert-to-efi-sig-list -g $(uuidgen) $efikeys_dir/MicCorUEFCA2011_2011-06-27.pem $efikeys_dir/MicCorUEFCA2011_2011-06-27.esl
+if ! file_exists "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl"; then
+    create_esl "$efikeys_dir/MicCorUEFCA2011_2011-06-27"
 fi
 
-# Check if db.esl already exists and skip creation
-if [[ -f $efikeys_dir/db.esl ]]; then
-    echo "The file 'db.esl' already exists. Skipping creation."
+if file_exists "$efikeys_dir/db.esl"; then
 else
-    cat $efikeys_dir/PK.esl $efikeys_dir/KEK.esl $efikeys_dir/ISK.esl $efikeys_dir/MicWinProPCA2011_2011-10-19.esl $efikeys_dir/MicCorUEFCA2011_2011-06-27.esl > $efikeys_dir/db.esl
+    concat_esl "$efikeys_dir/PK.esl" "$efikeys_dir/KEK.esl" "$efikeys_dir/ISK.esl" "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl" "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl" > "$efikeys_dir/db.esl"
 fi
 
-# Check if .auth files already exist and skip creation
-if [[ -f $efikeys_dir/PK.auth ]]; then
-    echo "The file 'PK.auth' already exists. Skipping creation."
+if file_exists "$efikeys_dir/PK.auth"; then
 else
-    sign-efi-sig-list -k $efikeys_dir/PK.key -c $efikeys_dir/PK.pem PK $efikeys_dir/PK.esl $efikeys_dir/PK.auth
-    echo "'PK.auth' created successfully."
+    create_auth "$efikeys_dir/PK" "PK" "$efikeys_dir/PK"
 fi
 
-if [[ -f $efikeys_dir/KEK.auth ]]; then
-    echo "The file 'KEK.auth' already exists. Skipping creation."
+if file_exists "$efikeys_dir/KEK.auth"; then
 else
-    sign-efi-sig-list -k $efikeys_dir/PK.key -c $efikeys_dir/PK.pem KEK $efikeys_dir/KEK.esl $efikeys_dir/KEK.auth
-    echo "'KEK.auth' created successfully."
+    create_auth "$efikeys_dir/KEK" "KEK" "$efikeys_dir/KEK"
 fi
 
-if [[ -f $efikeys_dir/db.auth ]]; then
-    echo "The file 'db.auth' already exists. Skipping creation."
+if file_exists "$efikeys_dir/db.auth"; then
 else
-    sign-efi-sig-list -k $efikeys_dir/KEK.key -c $efikeys_dir/KEK.pem db $efikeys_dir/db.esl $efikeys_dir/db.auth
-    echo "'db.auth' created successfully."
+    create_auth "$efikeys_dir/KEK" "db" "$efikeys_dir/db"
 fi
 
-# Check if the 'Download' directory already exists and skip creation
-if [[ -d "$script_dir/Download" ]]; then
-    echo "The 'Download' directory already exists. Skipping creation."
+dir_path="$script_dir/Download"
+if [ -d "$dir_path" ]; then
 else
-    # Create working directory
-    mkdir "$script_dir/Download"
-    echo "Directory 'Download' created successfully."
+    mkdir "$dir_path"
 fi
 
 # Function to fetch the latest OpenCore version from GitHub
@@ -165,14 +177,12 @@ target_directory="$script_dir/Download"
 
 # Check if OpenCore has already been downloaded
 if [ -d "$target_directory/X64" ] && [ -d "$target_directory/Docs" ] && [ -d "$target_directory/Utilities" ]; then
-  echo "OpenCore is already downloaded."
 else
   # Download and unzip OpenCore
   curl -O "$target_directory/OpenCore-$latest_version-RELEASE.zip" "$LINK"
   unzip "$target_directory/OpenCore-$latest_version-RELEASE.zip" "X64/*" -d "$target_directory"
   unzip "$target_directory/OpenCore-$latest_version-RELEASE.zip" "Docs/*" -d "$target_directory"
   unzip "$target_directory/OpenCore-$latest_version-RELEASE.zip" "Utilities/*" -d "$target_directory"
-  echo "OpenCore downloaded and extracted successfully."
 fi
 
 mkdir -p "$script_dir/system-files"
@@ -182,15 +192,6 @@ src_folder="$script_dir/system-files"
 dest_folder="$script_dir/Download/X64/EFI/OC"
 # Copy files with overwrite
 cp -r -f "$src_folder"/* "$dest_folder"
-
-# Check ISK files
-if [ -f "$efikeys_dir/ISK.key" ]; then
-    echo "ISK.key was decrypted successfully"
-fi
-
-if [ -f "$efikeys_dir/ISK.pem" ]; then
-    echo "ISK.pem was decrypted successfully"
-fi
 
 # Create the X64-Signed directory
 if [ -d "$target_directory/X64-Signed" ]; then
@@ -221,7 +222,6 @@ efi_partition=$(findmnt -n -o SOURCE -T /boot/efi)
 
 # Function to install OpenCore without secure boot
 install_without_secure_boot() {
-  echo "Installing OpenCore without secure boot..."
   # Mount the EFI partition
   sudo mount "$efi_partition" /mnt
   # Copy files from X64-Signed folder to the EFI partition
@@ -232,7 +232,6 @@ install_without_secure_boot() {
 
 # Function to install OpenCore with secure boot
 install_with_secure_boot() {
-  echo "Installing OpenCore with secure boot..."
   # add .auth files into uefi firmware
   sudo mokutil --import $efikeys_dir/PK.auth
   sudo mokutil --import $efikeys_dir/KEK.auth
