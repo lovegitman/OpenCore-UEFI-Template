@@ -201,8 +201,8 @@ cp -r -f "$src_folder"/* "$dest_folder"
 key="$efikeys_dir/ISK.key"
 certificate="$efikeys_dir/ISK.crt"
 
-# Sign .kext, .aml, and .efi files in the X64-Signed directory and subdirectories
-find "$X64_Signed" \( -name "*.kext" -o -name "*.aml" -o -name "*.efi" \) -type f | while read -r file; do
+# Sign .efi files in X64-Signed directory and subdirectories
+find "$X64_Signed" -name "*.efi" -type f | while read -r file; do
     # Sign the file using sbsign and override the original file
     sbsign --key "$key" --cert "$certificate" --output "$file" "$file"
 done
