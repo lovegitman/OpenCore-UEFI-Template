@@ -199,12 +199,12 @@ cp -r -f "$src_folder"/* "$dest_folder"
 
 # Specify key & PEM certificate files
 key="$efikeys_dir/ISK.key"
-pem_certificate="$efikeys_dir/ISK.pem"
+certificate="$efikeys_dir/ISK.crt"
 
 # Sign .kext, .aml, and .efi files in the X64-Signed directory and subdirectories
 find "$X64_Signed" \( -name "*.kext" -o -name "*.aml" -o -name "*.efi" \) -type f | while read -r file; do
     # Sign the file using sbsign and override the original file
-    sbsign --key "$key" --cert "$pem_certificate" --output "$file" "$file"
+    sbsign --key "$key" --cert "$certificate" --output "$file" "$file"
 done
 
 # Find the EFI partition
