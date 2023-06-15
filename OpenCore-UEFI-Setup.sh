@@ -54,7 +54,6 @@ check_installation "efitools"
 efikeys_dir="$script_dir/efikeys"
 if [ ! -d "$efikeys_dir" ]; then
   mkdir "$efikeys_dir"
-else
 fi
 
 # Function to check if a file exists
@@ -131,31 +130,24 @@ if ! file_exists "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl"; then
     create_esl "$efikeys_dir/MicCorUEFCA2011_2011-06-27"
 fi
 
-if file_exists "$efikeys_dir/db.esl"; then
-else
-    concat_esl "$efikeys_dir/PK.esl" "$efikeys_dir/KEK.esl" "$efikeys_dir/ISK.esl" "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl" "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl" > "$efikeys_dir/db.esl"
+if [ ! -f "$efikeys_dir/db.esl" ]; then
+  concat_esl "$efikeys_dir/PK.esl" "$efikeys_dir/KEK.esl" "$efikeys_dir/ISK.esl" "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl" "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl" > "$efikeys_dir/db.esl"
 fi
 
-if file_exists "$efikeys_dir/PK.auth"; then
-else
+if ! file_exists "$efikeys_dir/PK.auth"; then
     create_auth "$efikeys_dir/PK" "PK" "$efikeys_dir/PK"
 fi
 
-if file_exists "$efikeys_dir/KEK.auth"; then
-else
+if [ ! -f "$efikeys_dir/KEK.auth" ]; then
     create_auth "$efikeys_dir/KEK" "KEK" "$efikeys_dir/KEK"
 fi
 
-if file_exists "$efikeys_dir/db.auth"; then
-else
-    create_auth "$efikeys_dir/KEK" "db" "$efikeys_dir/db"
+if [ ! -f "$efikeys_dir/db.auth" ]; then
+  create_auth "$efikeys_dir/KEK" "db" "$efikeys_dir/db"
 fi
 
 dir_path="$script_dir/Download"
-if [ -d "$dir_path" ]; then
-else
-    mkdir "$dir_path"
-fi
+mkdir -p "$dir_path"
 
 # Function to fetch the latest OpenCore version from GitHub
 get_latest_version() {
@@ -175,8 +167,7 @@ LINK="https://github.com/acidanthera/OpenCorePkg/releases/download/${latest_vers
 target_directory="$script_dir/Download"
 
 # Check if OpenCore has already been downloaded
-if [ -d "$target_directory/X64" ] && [ -d "$target_directory/Docs" ] && [ -d "$target_directory/Utilities" ]; then
-else
+if [ ! -d "$target_directory/X64" ] || [ ! -d "$target_directory/Docs" ] || [ ! -d "$target_directory/Utilities" ]; then
   # Download and unzip OpenCore
   curl -O "$target_directory/OpenCore-$latest_version-RELEASE.zip" "$LINK"
   unzip "$target_directory/OpenCore-$latest_version-RELEASE.zip" "X64/*" -d "$target_directory"
