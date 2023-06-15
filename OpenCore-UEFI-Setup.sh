@@ -43,7 +43,6 @@ function check_installation {
             echo "Neither APT nor DNF package managers found. Unable to install $package_name."
             exit 1
         fi
-    else
     fi
 }
 
