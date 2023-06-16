@@ -275,6 +275,8 @@ echo "Please select the installation type:"
 echo "1. Install with secure boot"
 echo "2. Install without secure boot"
 echo "3. Do not install OpenCore"
+echo "BEFORE INSTALL MUST MODIFY system-files FOLDER FOR YOUR SYSTEM"
+echo "anything inside system-files will be added to Download/X64/EFI/OC/"
 read -p "Enter your choice (1, 2, or 3): " choice
 
 # Validate the user's choice and execute the appropriate function
