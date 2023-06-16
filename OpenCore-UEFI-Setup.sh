@@ -1,33 +1,61 @@
 #!/bin/bash
 
-read -p "Are you connected to the internet? (y/n): " answer
-answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]') # Convert answer to lowercase
-if [ "$answer" = "y" ]; then
-  if dig +short google.com > /dev/null 2>&1; then
-    echo "Internet is available."
-  else
-  # New nameserver IP addresses
-  primary_dns="8.8.8.8"
-  secondary_dns="8.8.4.4"
-  # Backup the original resolv.conf file
-  sudo cp /etc/resolv.conf /etc/resolv.conf.backup
-  # Update the nameserver IP addresses
-  sudo sed -i "s/^nameserver .*/nameserver $primary_dns\nnameserver $secondary_dns/" /etc/resolv.conf
-  echo "Nameserver configuration updated."
-  echo "Internet is available."
-  fi
-elif [ "$answer" = "n" ]; then
-  echo "connect to internet and try again."
-  exit 1
-else
-  echo "Invalid input. Please enter 'y' or 'n'."
-  exit 1
-fi
-
 # Get the directory path of the script
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Change to the script's directory
 cd "$script_dir"
+
+# Function to check if a package is installed
+check_package() {
+  if ! dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "ok installed"; then
+    return 1
+  fi
+  return 0
+}
+
+# Function to check if a directory exists
+check_directory() {
+  if [ ! -d "$1" ]; then
+    return 1
+  fi
+  return 0
+}
+
+# Function to check if a file exists
+check_file() {
+  if [ ! -f "$1" ]; then
+    return 1
+  fi
+  return 0
+}
+
+# Check if packages are not installed
+if ! check_package openssl || ! check_package unzip || ! check_package mokutil || ! check_package efitools; then
+  # Check if directories don't exist
+  download_dir="$script_dir/Download"
+  efikeys_dir="$script_dir/efikeys"
+  if ! check_directory "$download_dir/X64" || ! check_directory "$download_dir/Docs" || ! check_directory "$download_dir/Utilities" || ! check_directory "$efikeys_dir"; then
+    # Check if files don't exist
+    if ! check_file "$efikeys_dir/MicWinProPCA2011_2011-10-19.crt" || ! check_file "$efikeys_dir/MicCorUEFCA2011_2011-06-27.crt"; then
+      # Check internet connectivity
+      if dig +short google.com > /dev/null 2>&1; then
+        echo "Internet is available."
+      else
+        # New nameserver IP addresses
+        primary_dns="8.8.8.8"
+        secondary_dns="8.8.4.4"
+        # Backup the original resolv.conf file
+        sudo cp /etc/resolv.conf /etc/resolv.conf.backup
+        # Update the nameserver IP addresses
+        sudo sed -i "s/^nameserver .*/nameserver $primary_dns\nnameserver $secondary_dns/" /etc/resolv.conf
+        echo "Nameserver configuration updated."
+        echo "Internet is available."
+      fi
+    fi
+  fi
+else
+  echo "All required packages, directories, and files are already available."
+fi
 
 function check_installation {
     package_name=$1
@@ -56,166 +84,170 @@ if [ ! -d "$efikeys_dir" ]; then
   mkdir "$efikeys_dir"
 fi
 
-# Function to check if a file exists
-file_exists() {
-    [[ -f "$1" ]]
+download_dir="$script_dir/Download"
+if [ ! -d "$download_dir" ]; then
+  mkdir "$download_dir"
+fi
+
+system_dir="$script_dir/system-files"
+if [ ! -d "$system_dir" ]; then
+  mkdir "$system_dir"
+fi
+
+# Function to create or download certificate and key
+function create_or_download_cert_key {
+    # Create PK (Platform Key)
+    if [ ! -f "$efikeys_dir/PK.key" ] || [ ! -f "$efikeys_dir/PK.pem" ]; then
+    rm "$efikeys_dir/PK.key" 2>/dev/null && rm "$efikeys_dir/PK.pem" 2>/dev/null
+    openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore PK Platform Key/" -keyout "$efikeys_dir/PK.key" -out "$efikeys_dir/PK.pem"
+    fi
+
+    # Create KEK (Key Exchange Key)
+    if [ ! -f "$efikeys_dir/KEK.key" ] || [ ! -f "$efikeys_dir/KEK.pem" ]; then
+    rm "$efikeys_dir/KEK.key" 2>/dev/null && rm "$efikeys_dir/KEK.pem" 2>/dev/null
+    openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore KEK Exchange Key/" -keyout "$efikeys_dir/KEK.key" -out "$efikeys_dir/KEK.pem"
+    fi
+
+    # Create ISK (Initial Supplier Key)
+    if [ ! -f "$efikeys_dir/ISK.key" ] || [ ! -f "$efikeys_dir/ISK.pem" ]; then
+    rm "$efikeys_dir/ISK.key" 2>/dev/null && rm "$efikeys_dir/ISK.pem" 2>/dev/null
+    openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore ISK Image Signing Key/" -keyout "$efikeys_dir/ISK.key" -out "$efikeys_dir/ISK.pem"
+    fi
+
+    # Permission for key files
+    chmod 0600 "$efikeys_dir"/*.key
+
+    # Download Microsoft certificates
+    # Microsoft Windows Production CA 2011
+    if [ ! -f "$efikeys_dir/MicWinProPCA2011_2011-10-19.crt" ]; then
+    curl -s -o "$efikeys_dir/MicWinProPCA2011_2011-10-19.crt" https://www.microsoft.com/pkiops/certs/MicWinProPCA2011_2011-10-19.crt
+    fi
+    # Microsoft UEFI driver signing CA key
+    if [ ! -f "$efikeys_dir/MicCorUEFCA2011_2011-06-27.crt" ]; then
+    curl -s -o "$efikeys_dir/MicCorUEFCA2011_2011-06-27.crt" https://www.microsoft.com/pkiops/certs/MicCorUEFCA2011_2011-06-27.crt
+    fi
+
+    # Digitally sign Microsoft certificates
+    if [ ! -f "$efikeys_dir/MicWinProPCA2011_2011-10-19.pem" ]; then
+    openssl x509 -in "$efikeys_dir/MicWinProPCA2011_2011-10-19.crt" -inform DER -out "$efikeys_dir/MicWinProPCA2011_2011-10-19.pem" -outform PEM
+    fi
+    if [ ! -f "$efikeys_dir/MicCorUEFCA2011_2011-06-27.pem" ]; then
+    openssl x509 -in "$efikeys_dir/MicCorUEFCA2011_2011-06-27.crt" -inform DER -out "$efikeys_dir/MicCorUEFCA2011_2011-06-27.pem" -outform PEM
+    fi
+
+    # Convert PEM files to ESL format suitable for UEFI Secure Boot
+    if [ ! -f "$efikeys_dir/PK.esl" ]; then
+    cert-to-efi-sig-list -g $(uuidgen) "$efikeys_dir/PK.pem" "$efikeys_dir/PK.esl"
+    fi
+    if [ ! -f "$efikeys_dir/KEK.esl" ]; then
+    cert-to-efi-sig-list -g $(uuidgen) "$efikeys_dir/KEK.pem" "$efikeys_dir/KEK.esl"
+    fi
+    if [ ! -f "$efikeys_dir/ISK.esl" ]; then
+    cert-to-efi-sig-list -g $(uuidgen) "$efikeys_dir/ISK.pem" "$efikeys_dir/ISK.esl"
+    fi
+    if [ ! -f "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl" ]; then
+    cert-to-efi-sig-list -g $(uuidgen) "$efikeys_dir/MicWinProPCA2011_2011-10-19.pem" "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl"
+    fi
+    if [ ! -f "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl" ]; then
+    cert-to-efi-sig-list -g $(uuidgen) "$efikeys_dir/MicCorUEFCA2011_2011-06-27.pem" "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl"
+    fi
+
+    # Create the database including the signed Microsoft certificates
+    if [ ! -f "$efikeys_dir/db.esl" ]; then
+    cat "$efikeys_dir/ISK.esl" "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl" "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl" > "$efikeys_dir/db.esl"
+    fi
+
+    # Digitally sign ESL files
+    # PK sign
+    if [ ! -f "$efikeys_dir/PK.auth" ]; then
+    sign-efi-sig-list -k "$efikeys_dir/PK.key" -c "$efikeys_dir/PK.pem" PK "$efikeys_dir/PK.esl" "$efikeys_dir/PK.auth"
+    fi
+    # KEK is signed with PK
+    if [ ! -f "$efikeys_dir/KEK.auth" ]; then
+    sign-efi-sig-list -k "$efikeys_dir/PK.key" -c "$efikeys_dir/PK.pem" KEK "$efikeys_dir/KEK.esl" "$efikeys_dir/KEK.auth"
+    fi
+    # the database is signed with KEK
+    if [ ! -f "$efikeys_dir/db.auth" ]; then
+    sign-efi-sig-list -k "$efikeys_dir/KEK.key" -c "$efikeys_dir/KEK.pem" db "$efikeys_dir/db.esl" "$efikeys_dir/db.auth"
+    fi
+    ISK_key="$efikeys_dir/ISK.key"
+    ISK_pem="$efikeys_dir/ISK.pem"
 }
 
-# Function to create a certificate and key pair
-create_cert_key() {
-    openssl req -new -x509 -newkey rsa:2048 -sha256 -nodes -subj "$1" -keyout "$2.key" -out "$2.crt"
-    openssl x509 -in "$2.crt" -outform DER -out "$2.der"
-    chmod 0600 "$2.key"
-}
+# Call the function to create or download certificate and key
+create_or_download_cert_key
 
-# Function to download a certificate
-download_cert() {
-    curl -o "$1.der" "$2"
-}
-
-# Function to create an EFI signature list file
-create_esl() {
-    cert-to-efi-sig-list -g $(uuidgen) "$1.crt" "$1.esl"
-}
-
-# Function to concatenate ESL files
-concat_esl() {
-    cat "$@" > "$1"
-}
-
-# Function to create an auth file
-create_auth() {
-    sign-efi-sig-list -k "$1.key" -c "$1.crt" "$2" "$3.esl" "$3.auth"
-    echo "'$3.auth' created successfully."
-}
-
-# Check if the files already exist before creating them
-if ! (file_exists "$efikeys_dir/PK.key" && file_exists "$efikeys_dir/PK.crt" && file_exists "$efikeys_dir/PK.der"); then
-    create_cert_key "/CN=OpenCore PK Platform Key/" "$efikeys_dir/PK"
+if [ -d "$download_dir/X64" ] && [ -d "$download_dir/Docs" ] && [ -d "$download_dir/Utilities" ]; then
+  echo "All three directories (X64, Docs, Utilities) exist."
+  # Add your desired code here when all directories exist
+else
+  echo "One or more directories are missing."
+  # Define the GitHub repository
+  repository="acidanthera/OpenCorePkg"
+  # Get the latest release information from the GitHub API
+  release_info=$(curl -s "https://api.github.com/repos/$repository/releases/latest")
+  # Filter out debug assets
+  download_url=$(echo "$release_info" | jq -r '.assets | map(select(.name | test("DEBUG"; "i") | not)) | .[0].browser_download_url')
+  # Extract the file name from the download URL
+  file_name=$(basename "$download_url")
+  # Define the destination file path
+  destination_path="$download_dir/$file_name"
+  # Download the latest OpenCore zip file
+  curl -L -o "$destination_path" "$download_url"
+  # Check if X64 directory is missing
+  if [ ! -d "$download_dir/X64" ]; then
+  # unzip X64 directory from OpenCore
+  unzip -q "$destination_path" "X64/*" -d "$download_dir"
+  fi
+  # Check if Docs directory is missing
+  if [ ! -d "$download_dir/Docs" ]; then
+  # unzip Docs directory from OpenCore
+  unzip -q "$destination_path" "Docs/*" -d "$download_dir"
+  fi
+  # Check if Utilities directory is missing
+  if [ ! -d "$download_dir/Utilities" ]; then
+  # unzip Utilities directory from OpenCore
+  unzip -q "$destination_path" "Utilities/*" -d "$download_dir"
+  fi
+  # Clean up
+  rm "$destination_path" 2>/dev/null
 fi
 
-if ! (file_exists "$efikeys_dir/KEK.key" && file_exists "$efikeys_dir/KEK.crt" && file_exists "$efikeys_dir/KEK.der"); then
-    create_cert_key "/CN=OpenCore KEK Exchange Key/" "$efikeys_dir/KEK"
-fi
-
-if ! (file_exists "$efikeys_dir/ISK.key" && file_exists "$efikeys_dir/ISK.crt" && file_exists "$efikeys_dir/ISK.der"); then
-    create_cert_key "/CN=OpenCore ISK Image Signing Key/" "$efikeys_dir/ISK"
-fi
-
-if ! (file_exists "$efikeys_dir/MicWinProPCA2011_2011-10-19.crt" && file_exists "$efikeys_dir/MicWinProPCA2011_2011-10-19.der"); then
-    download_cert "$efikeys_dir/MicWinProPCA2011_2011-10-19" "https://www.microsoft.com/pkiops/certs/MicWinProPCA2011_2011-10-19.crt"
-fi
-
-if ! (file_exists "$efikeys_dir/MicCorUEFCA2011_2011-06-27.crt" && file_exists "$efikeys_dir/MicCorUEFCA2011_2011-06-27.der"); then
-    download_cert "$efikeys_dir/MicCorUEFCA2011_2011-06-27" "https://www.microsoft.com/pkiops/certs/MicCorUEFCA2011_2011-06-27.crt"
-fi
-
-if ! file_exists "$efikeys_dir/PK.esl"; then
-    create_esl "$efikeys_dir/PK"
-fi
-
-if ! file_exists "$efikeys_dir/KEK.esl"; then
-    create_esl "$efikeys_dir/KEK"
-fi
-
-if ! file_exists "$efikeys_dir/ISK.esl"; then
-    create_esl "$efikeys_dir/ISK"
-fi
-
-if ! file_exists "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl"; then
-    create_esl "$efikeys_dir/MicWinProPCA2011_2011-10-19"
-fi
-
-if ! file_exists "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl"; then
-    create_esl "$efikeys_dir/MicCorUEFCA2011_2011-06-27"
-fi
-
-if [ ! -f "$efikeys_dir/db.esl" ]; then
-  concat_esl "$efikeys_dir/PK.esl" "$efikeys_dir/KEK.esl" "$efikeys_dir/ISK.esl" "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl" "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl" > "$efikeys_dir/db.esl"
-fi
-
-if ! file_exists "$efikeys_dir/PK.auth"; then
-    create_auth "$efikeys_dir/PK" "PK" "$efikeys_dir/PK"
-fi
-
-if [ ! -f "$efikeys_dir/KEK.auth" ]; then
-    create_auth "$efikeys_dir/KEK" "KEK" "$efikeys_dir/KEK"
-fi
-
-if [ ! -f "$efikeys_dir/db.auth" ]; then
-  create_auth "$efikeys_dir/KEK" "db" "$efikeys_dir/db"
-fi
-
-dir_path="$script_dir/Download"
-mkdir -p "$dir_path"
-
-# Function to fetch the latest OpenCore version from GitHub
-get_latest_version() {
-  local url="https://api.github.com/repos/acidanthera/OpenCorePkg/releases/latest"
-  local response=$(curl -s "$url")
-  local version=$(echo "$response" | grep -oP '"tag_name": "\K(.*)(?=")')
-  echo "$version"
-}
-
-# Fetch the latest OpenCore version
-latest_version=$(get_latest_version)
-
-# Set the download link
-LINK="https://github.com/acidanthera/OpenCorePkg/releases/download/${latest_version}/OpenCore-${latest_version}-RELEASE.zip"
-
-# Define the target directory for extraction
-target_directory="$script_dir/Download"
-
-# Check if OpenCore has already been downloaded
-if [ ! -d "$target_directory/X64" ] || [ ! -d "$target_directory/Docs" ] || [ ! -d "$target_directory/Utilities" ]; then
-  # Download and unzip OpenCore
-  curl -O "$target_directory/OpenCore-$latest_version-RELEASE.zip" "$LINK"
-  unzip "$target_directory/OpenCore-$latest_version-RELEASE.zip" "X64/*" -d "$target_directory"
-  unzip "$target_directory/OpenCore-$latest_version-RELEASE.zip" "Docs/*" -d "$target_directory"
-  unzip "$target_directory/OpenCore-$latest_version-RELEASE.zip" "Utilities/*" -d "$target_directory"
-fi
-
-mkdir -p "$script_dir/system-files"
 # Source folder
-src_folder="$script_dir/system-files"
+src_folder="$system_dir"
 # Destination folder
-dest_folder="$script_dir/Download/X64/EFI/OC"
+dest_folder="$download_dir/X64/EFI/OC"
 # Copy files with overwrite
 cp -r -f "$src_folder"/* "$dest_folder"
 
 # Create the X64-Signed directory
-if [ -d "$target_directory/X64-Signed" ]; then
-  rm -rf "$target_directory/X64-Signed"
+if [ -d "$download_dir/X64-Signed" ]; then
+  rm -rf "$download_dir/X64-Signed"
 fi
-mkdir -p "$target_directory/X64-Signed"
-X64_Signed="$target_directory/X64-Signed"
+mkdir -p "$download_dir/X64-Signed"
+X64_Signed="$download_dir/X64-Signed"
 
 # Source folder
-src_folder="$target_directory/X64"
+src_folder="$download_dir/X64"
 # Destination folder
-dest_folder="$target_directory/X64-Signed"
+dest_folder="$download_dir/X64-Signed"
 # Copy files with overwrite
 cp -r -f "$src_folder"/* "$dest_folder"
-
-# Specify key & certificate file
-key="$efikeys_dir/ISK.key"
-certificate="$efikeys_dir/ISK.crt"
 
 # Sign .efi files in X64-Signed directory and subdirectories
 find "$X64_Signed" -name "*.efi" -type f | while read -r file; do
     # Sign the file using sbsign and override the original file
-    sbsign --key "$key" --cert "$certificate" --output "$file" "$file"
+    sbsign --key "$ISK_key" --cert "$ISK_pem" --output "$file" "$file"
 done
-
-# Find the EFI partition
-efi_partition=$(findmnt -n -o SOURCE -T /boot/efi)
 
 # Function to install OpenCore without secure boot
 install_without_secure_boot() {
+  # Find the EFI partition
+  efi_partition=$(findmnt -n -o SOURCE -T /boot/efi)
   # Mount the EFI partition
   sudo mount "$efi_partition" /mnt
   # Copy files from X64-Signed folder to the EFI partition
-  sudo cp -R "$target_directory/X64"* /mnt
+  sudo cp -R "$download_dir/X64"* /mnt
   # Unmount the EFI partition
   sudo umount /mnt
 }
@@ -226,10 +258,12 @@ install_with_secure_boot() {
   sudo mokutil --import $efikeys_dir/PK.auth
   sudo mokutil --import $efikeys_dir/KEK.auth
   sudo mokutil --import $efikeys_dir/db.auth
+  # Find the EFI partition
+  efi_partition=$(findmnt -n -o SOURCE -T /boot/efi)
   # Mount the EFI partition
   sudo mount "$efi_partition" /mnt
   # Copy files from X64-Signed folder to the EFI partition
-  sudo cp -R "$target_directory/X64-Signed"* /mnt
+  sudo cp -R "$download_dir/X64-Signed"* /mnt
   # Unmount the EFI partition
   sudo umount /mnt
 }
@@ -253,6 +287,3 @@ elif [[ $choice == 3 ]]; then
 else
   echo "Invalid choice. Please select 1, 2, or 3."
 fi
-
-# Clean up
-rm "$target_directory/OpenCore-$latest_version-RELEASE.zip" 2>/dev/null
