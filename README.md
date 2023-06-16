@@ -31,7 +31,7 @@ Linux:
 4. You Now Can Install OpenCore on your system  
 can't install in  Windows Subsystem for Linux (WSL)  
 
-windows:
+windows:  
 coming soon  
 
 ```xml
