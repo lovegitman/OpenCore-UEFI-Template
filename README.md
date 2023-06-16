@@ -19,7 +19,7 @@ Before running script, ensure that you have the following:
 - Internet connectivity.
 - Appropriate permissions to modify system files.
 - Basic knowledge of EFI, OpenCore, and system booting.
-- For Ubuntu & Fedora Based Linux Distro or Windows
+- For Ubuntu & Fedora Based Linux Distro or Windows (coming soon)
 
 ## Usage
 Linux:
@@ -32,12 +32,7 @@ Linux:
 can't install in  Windows Subsystem for Linux (WSL)  
 
 windows:
-1. run OpenCore-UEFI-Setup.bat
-2. The script automatically installs or updates required tools.
-3. EFI keys, certificates, Microsoft certificates, EFI signature list files, and authorization files are generated or downloaded as needed
-4. The script creates a "Download" directory and downloads the latest OpenCore version
-5. will ask to install opencore on your system  
-YOU MUST MODIFY system-files FOLDER FOR YOUR SYSTEM  
+coming soon  
 
 ```xml
 Adding Secure Boot Support:  
