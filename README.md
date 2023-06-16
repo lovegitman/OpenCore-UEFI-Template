@@ -2,17 +2,16 @@
 It is recommended to have a backup of your system before installing OpenCore.  
 
 automates the process of installing OpenCore on your system  
-
-1. Checks internet connectivity
-2. Automated Dependency Installation
-3. Generates EFI keys (PK, KEK, ISK) using OpenSSL.
-4. Downloads Microsoft certificates for EFI signature verification.
-5. Generates EFI signature list files (PK, KEK, ISK, Microsoft certificates).
-6. Creates the 'db.esl' file by combining all EFI signature list files.
-7. Signs EFI signature list files using the respective keys to generate '.auth' files.
-8. Downloads the latest OpenCore version from the official GitHub repository.
-9. Signs the OpenCore EFI binaries with the ISK key if available.
-10. Installs OpenCore on the EFI partition either with or without secure boot.  
+Linux:
+1. Checks if required packages (openssl, unzip, mokutil, efitools) are installed and if necessary directories and files exist.
+2. Installs any missing packages using APT or DNF package managers.
+3. Creates necessary directories for the script to work.
+4. Downloads Microsoft certificates and converts them to suitable formats.
+5. Downloads the latest release of OpenCore from a GitHub repository and extracts necessary directories (X64, Docs, Utilities).
+6. Copies system files to the appropriate destination.
+7. Creates a signed version of the X64 directory by signing the .efi files using sbsign.
+8. Provides options for installing OpenCore with or without secure boot.
+9. Installs OpenCore by copying files to the EFI partition.
 
 ## Prerequisites
 Before running script, ensure that you have the following:
