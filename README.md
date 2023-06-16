@@ -1,7 +1,7 @@
 # OpenCore-UEFI-Template  
 It is recommended to have a backup of your system before installing OpenCore.  
 
-automates the process of generating EFI keys and installing OpenCore on your system  
+automates the process of installing OpenCore on your system  
 
 1. Checks internet connectivity
 2. Automated Dependency Installation
