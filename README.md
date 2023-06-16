@@ -1,7 +1,8 @@
 # OpenCore-UEFI-Template  
 It is recommended to have a backup of your system before installing OpenCore.  
 
-automates the process of installing OpenCore on your system  
+automates the process of installing OpenCore on your system
+
 Linux:
 1. Checks if required packages (openssl, unzip, mokutil, efitools) are installed and if necessary directories and files exist.
 2. Installs any missing packages using APT or DNF package managers.
