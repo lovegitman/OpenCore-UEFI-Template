@@ -4,7 +4,7 @@ It is recommended to have a backup of your system before installing OpenCore.
 automates the process of installing OpenCore on your system
 
 Linux:
-1. Checks if required packages (openssl, unzip, mokutil, efitools) are installed and if necessary directories and files exist.
+1. Checks if required packages (openssl, unzip, mokutil, efitools, curl) are installed and if necessary directories and files exist.
 2. Installs any missing packages using APT or DNF package managers.
 3. Creates necessary directories for the script to work.
 4. Downloads Microsoft certificates and converts them to suitable formats.
