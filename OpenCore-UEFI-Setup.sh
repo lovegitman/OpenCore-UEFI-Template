@@ -99,19 +99,19 @@ function create_or_download_cert_key {
     # Create PK (Platform Key)
     if [ ! -f "$efikeys_dir/PK.key" ] || [ ! -f "$efikeys_dir/PK.pem" ]; then
     rm "$efikeys_dir/PK.key" 2>/dev/null && rm "$efikeys_dir/PK.pem" 2>/dev/null
-    openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore PK Platform Key/" -keyout "$efikeys_dir/PK.key" -out "$efikeys_dir/PK.pem"
+    openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore PK Platform Key/" -keyout "$efikeys_dir/PK.key" -out "$efikeys_dir/PK.pem" -outform PEM
     fi
 
     # Create KEK (Key Exchange Key)
     if [ ! -f "$efikeys_dir/KEK.key" ] || [ ! -f "$efikeys_dir/KEK.pem" ]; then
     rm "$efikeys_dir/KEK.key" 2>/dev/null && rm "$efikeys_dir/KEK.pem" 2>/dev/null
-    openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore KEK Exchange Key/" -keyout "$efikeys_dir/KEK.key" -out "$efikeys_dir/KEK.pem"
+    openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore KEK Exchange Key/" -keyout "$efikeys_dir/KEK.key" -out "$efikeys_dir/KEK.pem" -outform PEM
     fi
 
     # Create ISK (Initial Supplier Key)
     if [ ! -f "$efikeys_dir/ISK.key" ] || [ ! -f "$efikeys_dir/ISK.pem" ]; then
     rm "$efikeys_dir/ISK.key" 2>/dev/null && rm "$efikeys_dir/ISK.pem" 2>/dev/null
-    openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore ISK Image Signing Key/" -keyout "$efikeys_dir/ISK.key" -out "$efikeys_dir/ISK.pem"
+    openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore ISK Image Signing Key/" -keyout "$efikeys_dir/ISK.key" -out "$efikeys_dir/ISK.pem" -outform PEM
     fi
 
     # Permission for key files
@@ -160,16 +160,23 @@ function create_or_download_cert_key {
     # Digitally sign ESL files
     # PK sign
     if [ ! -f "$efikeys_dir/PK.auth" ]; then
-    sign-efi-sig-list -k "$efikeys_dir/PK.key" -c "$efikeys_dir/PK.pem" PK "$efikeys_dir/PK.esl" "$efikeys_dir/PK.auth"
+    openssl x509 -in "$efikeys_dir/PK.pem" -outform der -out "$efikeys_dir/PK.auth"
+    cat "$efikeys_dir/PK.key" >> "$efikeys_dir/PK.auth"
+    cat "$efikeys_dir/PK.esl" >> "$efikeys_dir/PK.auth"
     fi
     # KEK is signed with PK
     if [ ! -f "$efikeys_dir/KEK.auth" ]; then
-    sign-efi-sig-list -k "$efikeys_dir/PK.key" -c "$efikeys_dir/PK.pem" KEK "$efikeys_dir/KEK.esl" "$efikeys_dir/KEK.auth"
+    openssl x509 -in "$efikeys_dir/PK.pem" -outform der -out "$efikeys_dir/KEK.auth"
+    cat "$efikeys_dir/PK.key" >> "$efikeys_dir/KEK.auth"
+    cat "$efikeys_dir/KEK.esl" >> "$efikeys_dir/KEK.auth"
     fi
     # the database is signed with KEK
     if [ ! -f "$efikeys_dir/db.auth" ]; then
-    sign-efi-sig-list -k "$efikeys_dir/KEK.key" -c "$efikeys_dir/KEK.pem" db "$efikeys_dir/db.esl" "$efikeys_dir/db.auth"
+    openssl x509 -in "$efikeys_dir/KEK.pem" -outform der -out "$efikeys_dir/db.auth"
+    cat "$efikeys_dir/KEK.key" >> "$efikeys_dir/db.auth"
+    cat "$efikeys_dir/db.esl" >> "$efikeys_dir/db.auth"
     fi
+
     ISK_key="$efikeys_dir/ISK.key"
     ISK_pem="$efikeys_dir/ISK.pem"
 }
