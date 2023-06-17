@@ -7,10 +7,18 @@ cd "$script_dir"
 
 # Function to check if a package is installed
 check_package() {
-  if ! dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "ok installed"; then
-    return 1
+  if [ -x "$(command -v dpkg-query)" ]; then
+    # Ubuntu
+    if dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "ok installed"; then
+      return 0
+    fi
+  elif [ -x "$(command -v rpm)" ] && [ -x "$(command -v dnf)" ]; then
+    # Fedora
+    if rpm -q "$1" >/dev/null 2>&1 || dnf list installed "$1" >/dev/null 2>&1; then
+      return 0
+    fi
   fi
-  return 0
+  return 1
 }
 
 # Function to check if a directory exists
@@ -30,7 +38,7 @@ check_file() {
 }
 
 # Check if packages are not installed
-if ! check_package openssl || ! check_package unzip || ! check_package mokutil || ! check_package efitools; then
+if ! check_package openssl || ! check_package unzip || ! check_package mokutil || ! check_package efitools || ! check_package curl; then
   # Check if directories don't exist
   download_dir="$script_dir/Download"
   efikeys_dir="$script_dir/efikeys"
@@ -78,6 +86,7 @@ check_installation "openssl"
 check_installation "unzip"
 check_installation "mokutil"
 check_installation "efitools"
+check_installation "curl"
 
 efikeys_dir="$script_dir/efikeys"
 if [ ! -d "$efikeys_dir" ]; then
