@@ -272,7 +272,7 @@ install_without_secure_boot() {
   existing_boot_option=$(sudo efibootmgr | grep "$BOOT_OPTION_DESC")
   if [[ -z "$existing_boot_option" ]]; then
       # Add the boot option using efibootmgr
-      sudo efibootmgr --create --label "$BOOT_OPTION_DESC" --disk "$efi_partition" --loader "$EFI_PATH" --verbose
+      sudo efibootmgr --create --label "$BOOT_OPTION_DESC" --disk "$efi_partition" --loader "$EFI_PATH" --verbose --bootnum 0000
   else
       echo "Opencore boot option already exists."
   fi
@@ -300,7 +300,7 @@ install_with_secure_boot() {
   existing_boot_option=$(sudo efibootmgr | grep "$BOOT_OPTION_DESC")
   if [[ -z "$existing_boot_option" ]]; then
       # Add the boot option using efibootmgr
-      sudo efibootmgr --create --label "$BOOT_OPTION_DESC" --disk "$efi_partition" --loader "$EFI_PATH" --verbose
+      sudo efibootmgr --create --label "$BOOT_OPTION_DESC" --disk "$efi_partition" --loader "$EFI_PATH" --verbose --bootnum 0000
   else
       echo "Opencore boot option already exists."
   fi
