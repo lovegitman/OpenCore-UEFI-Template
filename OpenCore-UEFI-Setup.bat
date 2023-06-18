@@ -305,17 +305,21 @@ REM Mount the EFI partition
 mountvol %efi_partition% /s
 REM Copy files from X64-Signed folder to the EFI partition
 xcopy /E /I "%download_dir%\X64" %efi_partition%
-REM Set the description for the boot option
-SET BOOT_OPTION_DESC="Opencore Bootloader"
 REM Set the path to the Opencore bootloader in the EFI partition
-SET EFI_PATH="/efi/EFI/OC/OpenCore.efi"
-REM Check if the boot option already exists
-FOR /F "tokens=2 delims=:" %%G IN ('bcdedit /enum firmware ^| findstr /C:"%BOOT_OPTION_DESC%"') DO SET existing_boot_option=%%G
-IF "%existing_boot_option%"=="" (
-    REM Add the boot option using bcdedit
-    bcdedit /create /d "%BOOT_OPTION_DESC%" /application BOOTAPP /path "%EFI_PATH%"
+set EFI_PATH=\EFI\OC\OpenCore.efi
+REM Check if the OpenCore boot entry already exists
+bcdedit /enum | findstr /c:"Opencore Bootloader" > nul
+IF %errorlevel%==0 (
+    echo OpenCore boot entry already exists.
 ) ELSE (
-    echo "Opencore boot option already exists."
+    echo OpenCore boot entry does not exist. Creating...
+    REM Use the bcdedit command to create a new boot entry for OpenCore
+    bcdedit /create /d "Opencore Bootloader" /application bootsector
+    REM Set the path to the OpenCore EFI file using the detected EFI partition
+    bcdedit /set {default} device partition=%efi_partition%
+    bcdedit /set {default} path %EFI_PATH%
+    REM Set OpenCore as the default boot entry
+    bcdedit /default {default}
 )
 REM Unmount the EFI partition
 mountvol %efi_partition% /d
@@ -331,17 +335,21 @@ REM Mount the EFI partition
 mountvol %efi_partition% /s
 REM Copy files from X64-Signed folder to the EFI partition
 xcopy /E /I "%download_dir%\X64-Signed" %efi_partition%
-REM Set the description for the boot option
-SET BOOT_OPTION_DESC="Opencore Bootloader"
 REM Set the path to the Opencore bootloader in the EFI partition
-SET EFI_PATH="/efi/EFI/OC/OpenCore.efi"
-REM Check if the boot option already exists
-FOR /F "tokens=2 delims=:" %%G IN ('bcdedit /enum firmware ^| findstr /C:"%BOOT_OPTION_DESC%"') DO SET existing_boot_option=%%G
-IF "%existing_boot_option%"=="" (
-    REM Add the boot option using bcdedit
-    bcdedit /create /d "%BOOT_OPTION_DESC%" /application BOOTAPP /path "%EFI_PATH%"
+set EFI_PATH=\EFI\OC\OpenCore.efi
+REM Check if the OpenCore boot entry already exists
+bcdedit /enum | findstr /c:"Opencore Bootloader" > nul
+IF %errorlevel%==0 (
+    echo OpenCore boot entry already exists.
 ) ELSE (
-    echo "Opencore boot option already exists."
+    echo OpenCore boot entry does not exist. Creating...
+    REM Use the bcdedit command to create a new boot entry for OpenCore
+    bcdedit /create /d "Opencore Bootloader" /application bootsector
+    REM Set the path to the OpenCore EFI file using the detected EFI partition
+    bcdedit /set {default} device partition=%efi_partition%
+    bcdedit /set {default} path %EFI_PATH%
+    REM Set OpenCore as the default boot entry
+    bcdedit /default {default}
 )
 REM Unmount the EFI partition
 mountvol %efi_partition% /d
