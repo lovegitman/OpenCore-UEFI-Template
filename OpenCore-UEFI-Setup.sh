@@ -264,6 +264,18 @@ install_without_secure_boot() {
   sudo mount "$efi_partition" /mnt
   # Copy files from X64-Signed folder to the EFI partition
   sudo cp -R "$download_dir/X64"* /mnt
+  # Set the description for the boot option
+  BOOT_OPTION_DESC="Opencore Bootloader"
+  # Set the path to the Opencore bootloader in the EFI partition
+  EFI_PATH="/efi/EFI/OC/OpenCore.efi"
+  # Check if the boot option already exists
+  existing_boot_option=$(sudo efibootmgr | grep "$BOOT_OPTION_DESC")
+  if [[ -z "$existing_boot_option" ]]; then
+      # Add the boot option using efibootmgr
+      sudo efibootmgr --create --label "$BOOT_OPTION_DESC" --disk "$efi_partition" --loader "$EFI_PATH" --verbose
+  else
+      echo "Opencore boot option already exists."
+  fi
   # Unmount the EFI partition
   sudo umount /mnt
 }
@@ -280,6 +292,18 @@ install_with_secure_boot() {
   sudo mount "$efi_partition" /mnt
   # Copy files from X64-Signed folder to the EFI partition
   sudo cp -R "$download_dir/X64-Signed"* /mnt
+  # Set the description for the boot option
+  BOOT_OPTION_DESC="Opencore Bootloader"
+  # Set the path to the Opencore bootloader in the EFI partition
+  EFI_PATH="/efi/EFI/OC/OpenCore.efi"
+  # Check if the boot option already exists
+  existing_boot_option=$(sudo efibootmgr | grep "$BOOT_OPTION_DESC")
+  if [[ -z "$existing_boot_option" ]]; then
+      # Add the boot option using efibootmgr
+      sudo efibootmgr --create --label "$BOOT_OPTION_DESC" --disk "$efi_partition" --loader "$EFI_PATH" --verbose
+  else
+      echo "Opencore boot option already exists."
+  fi
   # Unmount the EFI partition
   sudo umount /mnt
 }
