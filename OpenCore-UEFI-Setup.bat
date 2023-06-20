@@ -291,8 +291,8 @@ set "dest_folder=%download_dir%\X64-Signed"
 :: Copy files with overwrite
 xcopy /E /Y "%src_folder%\*" "%dest_folder%\"
 
-REM Sign .efi files in X64-Signed directory and subdirectories
-for /r "%X64_Signed%" %%G in (*.efi) do (
+REM Sign .efi .kext files in X64-Signed directory and subdirectories
+for /r "%X64_Signed%" %%G in (*.efi *.kext) do (
     echo Signing: %%G
     signtool sign /f "%ISK_key%" /p "" /t http://timestamp.digicert.com /v "%%G"
 )
