@@ -43,7 +43,7 @@ The RequireVault key enables the requirement for a vaulted configuration, which 
 
 The ScanPolicy key sets the policy for scanning unsigned drivers during boot. Setting it to <integer>0</integer> allows all drivers to load regardless of their signatures. You can change this value if you want to enforce stricter policies.  
 
-1. Open your config.plist (system-files/config.plist) file using a text editor.  
+Open your config.plist (system-files/config.plist) file using a text editor.  
 
 Locate the "Misc" section in the file. If it doesn't exist, add the following code to create it:  
 <key>Misc</key>
