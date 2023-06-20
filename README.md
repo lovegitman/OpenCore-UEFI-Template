@@ -62,15 +62,33 @@ Inside the "Misc" section, add the following code to enable UEFI Secure Boot:
 </dict>
 
 should look like:
-<key>Misc</key>
+<plist version="1.0">
 <dict>
-    <key>Security</key>
+    <!-- Other sections and settings -->
+
+    <key>PlatformInfo</key>
     <dict>
-        <key>RequireSignature</key>
-        <true/>
-        <key>RequireVault</key>
-        <true/>
-        <key>ScanPolicy</key>
-        <integer>0</integer>
+        <!-- Other settings -->
+
+        <key>Misc</key>
+        <dict>
+            <key>Security</key>
+            <dict>
+                <key>RequireSignature</key>
+                <true/>
+                <key>RequireVault</key>
+                <true/>
+                <key>ScanPolicy</key>
+                <integer>0</integer>
+            </dict>
+        </dict>
+
+        <!-- Other settings -->
+
     </dict>
+
+    <!-- Other sections and settings -->
+
 </dict>
+</plist>
+
