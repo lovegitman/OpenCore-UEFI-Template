@@ -27,12 +27,11 @@ Linux:
 2. WHEN ASKED DO NOT INSTALL OPENCORE YOU MUST MODIFY system-files FOLDER FOR YOUR SYSTEM  
 (anything in system-files folder will be copied into Download/X64/EFI/OC/ folder overriding files)  
 3. Re-Run Shell Script: ./OpenCore-UEFI-Setup.sh  
-(Re-Running Shell Script won't delete files created)  
 4. You Now Can Install OpenCore on your system  
 can't install in  Windows Subsystem for Linux (WSL)  
 
 windows:  
-coming soon  
+Not Tested
 
 ```xml
 Adding Secure Boot Support:  
