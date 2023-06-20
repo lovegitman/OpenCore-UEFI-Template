@@ -36,7 +36,15 @@ coming soon
 
 ```xml
 Adding Secure Boot Support:  
-add UEFI Secure Boot support to your OpenCore config.plist file (system-files/config.plist)  
+The RequireSignature key enables the requirement for signed bootloaders and kernel extensions (kexts).  
+Setting it to <true/> ensures that only signed components are loaded.  
+
+The RequireVault key enables the requirement for a vaulted configuration, which provides additional security measures. Setting it to <true/> ensures that the configuration is vaulted.  
+
+The ScanPolicy key sets the policy for scanning unsigned drivers during boot. Setting it to <integer>0</integer> allows all drivers to load regardless of their signatures. You can change this value if you want to enforce stricter policies.  
+
+1. Open your config.plist (system-files/config.plist) file using a text editor.  
+
 Locate the "Misc" section in the file. If it doesn't exist, add the following code to create it:  
 <key>Misc</key>
 <dict>
