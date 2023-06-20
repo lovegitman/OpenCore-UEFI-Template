@@ -250,8 +250,8 @@ dest_folder="$download_dir/X64-Signed"
 # Copy files with overwrite
 cp -r -f "$src_folder"/* "$dest_folder"
 
-# Sign .efi files in X64-Signed directory and subdirectories
-find "$X64_Signed" -name "*.efi" -type f | while read -r file; do
+# Sign .efi .kext files in X64-Signed directory and subdirectories
+find "$X64_Signed" -type f \( -name "*.efi" -o -name "*.kext" \) -print0 | while IFS= read -r -d '' file; do
     # Sign the file using sbsign and override the original file
     sbsign --key "$ISK_key" --cert "$ISK_pem" --output "$file" "$file"
 done
