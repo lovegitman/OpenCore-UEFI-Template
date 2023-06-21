@@ -10,7 +10,7 @@ Linux:
 4. Downloads Microsoft certificates and converts them to suitable formats.
 5. Downloads the latest release of OpenCore from a GitHub repository and extracts necessary directories (X64, Docs, Utilities).
 6. Copies system files to the appropriate destination.
-7. Creates a signed version of the X64 directory by signing the .efi files using sbsign.
+7. Creates a signed version of the X64 directory by signing the .efi .kext files using sbsign.
 8. Provides options for installing OpenCore with or without secure boot.
 9. Installs OpenCore by copying files to the EFI partition.
 
