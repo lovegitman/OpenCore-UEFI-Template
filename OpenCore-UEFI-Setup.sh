@@ -283,9 +283,27 @@ install_without_secure_boot() {
 # Function to install OpenCore with secure boot
 install_with_secure_boot() {
   # add .auth files into uefi firmware
-  sudo mokutil --import $efikeys_dir/PK.auth
-  sudo mokutil --import $efikeys_dir/KEK.auth
-  sudo mokutil --import $efikeys_dir/db.auth
+  # Check if the PK.auth file is already imported
+sudo mokutil --test-key "$efikeys_dir/PK.auth"
+pk_imported=$?
+# Check if the KEK.auth file is already imported
+sudo mokutil --test-key "$efikeys_dir/KEK.auth"
+kek_imported=$?
+# Check if the db.auth file is already imported
+sudo mokutil --test-key "$efikeys_dir/db.auth"
+db_imported=$?
+# Import the PK.auth file if not already imported
+if [[ $pk_imported -ne 0 ]]; then
+  sudo mokutil --import "$efikeys_dir/PK.auth"
+fi
+# Import the KEK.auth file if not already imported
+if [[ $kek_imported -ne 0 ]]; then
+  sudo mokutil --import "$efikeys_dir/KEK.auth"
+fi
+# Import the db.auth file if not already imported
+if [[ $db_imported -ne 0 ]]; then
+  sudo mokutil --import "$efikeys_dir/db.auth"
+fi
   # Find the EFI partition
   efi_partition=$(findmnt -n -o SOURCE -T /boot/efi)
   # Mount the EFI partition
