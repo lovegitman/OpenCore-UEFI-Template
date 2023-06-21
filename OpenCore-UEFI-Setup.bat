@@ -328,7 +328,21 @@ goto :EOF
 REM Function to install OpenCore with secure boot
 :install_with_secure_boot
 REM Add .auth files into UEFI firmware
-powershell -Command "& {Import-Module SecureBootUEFI; Add-SecureBootUEFIFile -FilePath '%efikeys_dir%\PK.auth'; Add-SecureBootUEFIFile -FilePath '%efikeys_dir%\KEK.auth'; Add-SecureBootUEFIFile -FilePath '%efikeys_dir%\db.auth';}"
+$PKFile = '%efikeys_dir%\PK.auth'
+$KEKFile = '%efikeys_dir%\KEK.auth'
+$dbFile = '%efikeys_dir%\db.auth'
+$PKImported = Get-SecureBootUEFIFile | Where-Object { $_.FilePath -eq $PKFile }
+$KEKImported = Get-SecureBootUEFIFile | Where-Object { $_.FilePath -eq $KEKFile }
+$dbImported = Get-SecureBootUEFIFile | Where-Object { $_.FilePath -eq $dbFile }
+if (-not $PKImported) {
+    Add-SecureBootUEFIFile -FilePath $PKFile
+}
+if (-not $KEKImported) {
+    Add-SecureBootUEFIFile -FilePath $KEKFile
+}
+if (-not $dbImported) {
+    Add-SecureBootUEFIFile -FilePath $dbFile
+}
 REM Find the EFI partition
 for /f "usebackq tokens=2 delims==" %%G in (`wmic logicaldisk where "volumename='EFI'" get deviceid /format:value`) do set "efi_partition=%%G"
 REM Mount the EFI partition
