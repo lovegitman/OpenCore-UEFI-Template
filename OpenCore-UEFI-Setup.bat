@@ -173,17 +173,14 @@ REM Permission for key files
 attrib +r "%efikeys_dir%\*.key"
 
 REM Convert PEM files to ESL format suitable for UEFI Secure Boot
-if not exist %efikeys_dir%\PK.esl (
-    set UUID=%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%
-    osslsigncode smbiosign -key "%efikeys_dir%\PK.pem" -guid %UUID% -out "%efikeys_dir%\PK.esl"
+if not exist "%efikeys_dir%\PK.esl" (
+    certutil -encode "%efikeys_dir%\PK.pem" "%efikeys_dir%\PK.esl"
 )
-if not exist %efikeys_dir%\KEK.esl (
-    set UUID=%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%
-    osslsigncode smbiosign -key "%efikeys_dir%\KEK.pem" -guid %UUID% -out "%efikeys_dir%\KEK.esl"
+if not exist "%efikeys_dir%\KEK.esl" (
+    certutil -encode "%efikeys_dir%\KEK.pem" "%efikeys_dir%\KEK.esl"
 )
-if not exist %efikeys_dir%\ISK.esl (
-    set UUID=%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%%RANDOM%
-    osslsigncode smbiosign -key "%efikeys_dir%\ISK.pem" -guid %UUID% -out "%efikeys_dir%\ISK.esl"
+if not exist "%efikeys_dir%\ISK.esl" (
+    certutil -encode "%efikeys_dir%\ISK.pem" "%efikeys_dir%\ISK.esl"
 )
 
 REM Create the database
