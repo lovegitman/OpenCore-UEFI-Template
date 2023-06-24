@@ -20,7 +20,6 @@ if errorlevel 1 (
     exit
 )
 echo Internet connection is available.
-pause
 
 REM Check if Chocolatey is installed
 where choco > nul 2>&1
