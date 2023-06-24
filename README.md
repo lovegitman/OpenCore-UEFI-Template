@@ -19,7 +19,7 @@ Before running script, ensure that you have the following:
 - Internet connectivity.
 - Appropriate permissions to modify system files.
 - Basic knowledge of EFI, OpenCore, and system booting.
-- For Ubuntu & Fedora Based Linux Distro or Windows
+- For Ubuntu & Fedora Based Linux Distro
 
 ## Usage
 Linux:
@@ -29,9 +29,6 @@ Linux:
 3. Re-Run Shell Script: ./OpenCore-UEFI-Setup.sh  
 4. You Now Can Install OpenCore on your system  
 can't install in  Windows Subsystem for Linux (WSL)  
-
-windows:  
-Not Tested
 
 ```xml
 Adding Secure Boot Support:  
