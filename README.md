@@ -20,6 +20,7 @@ Before running script, ensure that you have the following:
 - Appropriate permissions to modify system files.
 - Basic knowledge of EFI, OpenCore, and system booting.
 - For Ubuntu & Fedora Based Linux Distro
+- Windows Version is not ready yet
 
 ## Usage
 Linux:
