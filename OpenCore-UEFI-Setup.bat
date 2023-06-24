@@ -9,7 +9,6 @@ if %errorLevel% EQU 0 (
     powershell.exe -Command "Start-Process -FilePath '%0' -Verb RunAs"
     exit /B
 )
-
 set "script_dir=%~dp0"
 cd /d "%script_dir%"
 
