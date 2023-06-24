@@ -257,26 +257,26 @@ if exist "%download_dir%\X64" if exist "%download_dir%\Docs" if exist "%download
   del "%destination_path%" 2>nul
 )
 
-:: Source folder
+REM Source folder
 set "src_folder=%system_dir%"
-:: Destination folder
+REM Destination folder
 set "dest_folder=%download_dir%\X64\EFI\OC"
-:: Copy files with overwrite
-xcopy /E /Y "%src_folder%\*" "%dest_folder%\"
+REM Copy files with overwrite
+xcopy /s /y "%src_folder%\*" "%dest_folder%\"
 
-:: Create the X64-Signed directory
-if exist "%download_dir%\X64-Signed" (
-    rmdir /s /q "%download_dir%\X64-Signed"
+REM Create the X64-Signed directory
+IF EXIST "%download_dir%\X64-Signed" (
+  RD /S /Q "%download_dir%\X64-Signed"
 )
-mkdir "%download_dir%\X64-Signed"
-set "X64_Signed=%download_dir%\X64-Signed"
+MD "%download_dir%\X64-Signed"
+SET "X64_Signed=%download_dir%\X64-Signed"
 
-:: Source folder
+REM Source folder
 set "src_folder=%download_dir%\X64"
-:: Destination folder
+REM Destination folder
 set "dest_folder=%download_dir%\X64-Signed"
-:: Copy files with overwrite
-xcopy /E /Y "%src_folder%\*" "%dest_folder%\"
+REM Copy files with overwrite
+xcopy /s /y "%src_folder%\*" "%dest_folder%\"
 
 REM Sign .efi .kext files in X64-Signed directory and subdirectories
 for /r %X64_Signed% %%F in (*.efi, *.kext) do (
