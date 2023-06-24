@@ -9,6 +9,7 @@ if %errorLevel% EQU 0 (
     powershell.exe -Command "Start-Process -FilePath '%0' -Verb RunAs"
     exit /B
 )
+
 set "script_dir=%~dp0"
 cd /d "%script_dir%"
 
@@ -36,6 +37,8 @@ IF %ERRORLEVEL% NEQ 0 (
         echo Chocolatey installed successfully.
     ) ELSE (
         echo Failed to install Chocolatey.
+        pause
+        exit /b
     )
 ) ELSE (
     echo Chocolatey is already installed.
@@ -56,24 +59,27 @@ IF %ERRORLEVEL% NEQ 0 (
         echo OpenSSL installed successfully.
     ) ELSE (
         echo Failed to install OpenSSL.
+        pause
+        exit /b
     )
 ) ELSE (
     echo OpenSSL is already installed.
 )
 
-REM Check if signtool is already installed
-where signtool >nul 2>nul
+REM Check if osslsigncode is already installed
+where osslsigncode >nul 2>nul
 if %errorlevel% equ 0 (
-    echo signtool is already installed.
+    echo osslsigncode is already installed.
 ) else (
-    echo Installing signtool...
-    REM Install signtool using Chocolatey
-    choco install signtool -y
+    echo Installing osslsigncode...
+    REM Install osslsigncode using Chocolatey
+    choco install osslsigncode -y
     if %errorlevel% neq 0 (
-        echo Failed to install signtool using Chocolatey.
-        exit /b 1
+        echo Failed to install osslsigncode using Chocolatey.
+        pause
+        exit /b
     )
-    echo signtool has been installed successfully.
+    echo osslsigncode has been installed successfully.
 )
 
 REM Check if curl is installed
@@ -86,7 +92,8 @@ if %errorlevel% equ 0 (
     choco install curl -y
     if %errorlevel% neq 0 (
         echo Failed to install curl using Chocolatey.
-        exit /b 1
+        pause
+        exit /b
     )
     echo curl has been installed successfully.
 )
@@ -105,6 +112,8 @@ IF %ERRORLEVEL% NEQ 0 (
         echo SecureBootUEFI module installed successfully.
     ) ELSE (
         echo Failed to install SecureBootUEFI module.
+        pause
+        exit /b
     )
 ) ELSE (
     echo SecureBootUEFI module is already installed.
@@ -153,13 +162,13 @@ attrib +r "%efikeys_dir%\*.key"
 
 REM Convert PEM files to ESL format suitable for UEFI Secure Boot
 if not exist "%efikeys_dir%\PK.esl" (
-    signtool catdb /u "%efikeys_dir%\PK.pem" "%efikeys_dir%\PK.esl"
+    osslsigncode catdb /u "%efikeys_dir%\PK.pem" "%efikeys_dir%\PK.esl"
 )
 if not exist "%efikeys_dir%\KEK.esl" (
-    signtool catdb /u "%efikeys_dir%\KEK.pem" "%efikeys_dir%\KEK.esl"
+    osslsigncode catdb /u "%efikeys_dir%\KEK.pem" "%efikeys_dir%\KEK.esl"
 )
 if not exist "%efikeys_dir%\ISK.esl" (
-    signtool catdb /u "%efikeys_dir%\ISK.pem" "%efikeys_dir%\ISK.esl"
+    osslsigncode catdb /u "%efikeys_dir%\ISK.pem" "%efikeys_dir%\ISK.esl"
 )
 
 REM Create the database
@@ -259,9 +268,9 @@ set "dest_folder=%download_dir%\X64-Signed"
 xcopy /E /Y "%src_folder%\*" "%dest_folder%\"
 
 REM Sign .efi .kext files in X64-Signed directory and subdirectories
-for /r "%X64_Signed%" %%G in (*.efi *.kext) do (
-    echo Signing: %%G
-    signtool sign /f "%ISK_key%" /p "" /t http://timestamp.digicert.com /v "%%G"
+for /r %X64_Signed% %%F in (*.efi, *.kext) do (
+    rem Sign the file using osslsigncode and override the original file
+    osslsigncode sign -key "%ISK_key%" -cert "%ISK_pem%" -in "%%F" -out "%%F"
 )
 
 REM Function to install OpenCore without secure boot
