@@ -88,20 +88,26 @@ IF %ERRORLEVEL% NEQ 0 (
     echo Osslsigncode is already installed.
 )
 
-REM Check if curl is installed
-where curl >nul 2>nul
-if %errorlevel% equ 0 (
-    echo curl is already installed.
-) else (
-    echo Installing curl...
-    REM Install curl using Chocolatey
+REM Check if Curl is installed
+where curl > nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    REM Curl not found, installing it
+    echo Installing Curl...
+
+    REM Install Curl using Chocolatey
     choco install curl -y
-    if %errorlevel% neq 0 (
-        echo Failed to install curl using Chocolatey.
+
+    REM Check if installation was successful
+    where curl > nul 2>&1
+    IF %ERRORLEVEL% EQU 0 (
+        echo Curl installed successfully.
+    ) ELSE (
+        echo Failed to install Curl.
         pause
         exit /b
     )
-    echo curl has been installed successfully.
+) ELSE (
+    echo Curl is already installed.
 )
 
 REM Check if SecureBootUEFI module is installed
