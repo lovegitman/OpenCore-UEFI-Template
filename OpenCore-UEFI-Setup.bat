@@ -66,20 +66,26 @@ IF %ERRORLEVEL% NEQ 0 (
     echo OpenSSL is already installed.
 )
 
-REM Check if osslsigncode is already installed
-where osslsigncode >nul 2>nul
-if %errorlevel% equ 0 (
-    echo osslsigncode is already installed.
-) else (
-    echo Installing osslsigncode...
-    REM Install osslsigncode using Chocolatey
+REM Check if Osslsigncode is installed
+where osslsigncode > nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    REM Osslsigncode not found, installing it
+    echo Installing Osslsigncode...
+
+    REM Install Osslsigncode using Chocolatey
     choco install osslsigncode -y
-    if %errorlevel% neq 0 (
-        echo Failed to install osslsigncode using Chocolatey.
+
+    REM Check if installation was successful
+    where osslsigncode > nul 2>&1
+    IF %ERRORLEVEL% EQU 0 (
+        echo Osslsigncode installed successfully.
+    ) ELSE (
+        echo Failed to install Osslsigncode.
         pause
         exit /b
     )
-    echo osslsigncode has been installed successfully.
+) ELSE (
+    echo Osslsigncode is already installed.
 )
 
 REM Check if curl is installed
