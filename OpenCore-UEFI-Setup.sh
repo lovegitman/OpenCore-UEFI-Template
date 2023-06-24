@@ -43,8 +43,6 @@ if ! check_package openssl || ! check_package unzip || ! check_package mokutil |
   download_dir="$script_dir/Download"
   efikeys_dir="$script_dir/efikeys"
   if ! check_directory "$download_dir/X64" || ! check_directory "$download_dir/Docs" || ! check_directory "$download_dir/Utilities" || ! check_directory "$efikeys_dir"; then
-    # Check if files don't exist
-    if ! check_file "$efikeys_dir/MicWinProPCA2011_2011-10-19.crt" || ! check_file "$efikeys_dir/MicCorUEFCA2011_2011-06-27.crt"; then
       # Check internet connectivity
       if dig +short google.com > /dev/null 2>&1; then
         echo "Internet is available."
@@ -103,8 +101,8 @@ if [ ! -d "$system_dir" ]; then
   mkdir "$system_dir"
 fi
 
-# Function to create or download certificate and key
-function create_or_download_cert_key {
+# Function to create certificate and key
+function create_cert_key {
     # Create PK (Platform Key)
     if [ ! -f "$efikeys_dir/PK.key" ] || [ ! -f "$efikeys_dir/PK.pem" ]; then
     rm "$efikeys_dir/PK.key" 2>/dev/null && rm "$efikeys_dir/PK.pem" 2>/dev/null
@@ -126,24 +124,6 @@ function create_or_download_cert_key {
     # Permission for key files
     chmod 0600 "$efikeys_dir"/*.key
 
-    # Download Microsoft certificates
-    # Microsoft Windows Production CA 2011
-    if [ ! -f "$efikeys_dir/MicWinProPCA2011_2011-10-19.crt" ]; then
-    curl -s -o "$efikeys_dir/MicWinProPCA2011_2011-10-19.crt" https://www.microsoft.com/pkiops/certs/MicWinProPCA2011_2011-10-19.crt
-    fi
-    # Microsoft UEFI driver signing CA key
-    if [ ! -f "$efikeys_dir/MicCorUEFCA2011_2011-06-27.crt" ]; then
-    curl -s -o "$efikeys_dir/MicCorUEFCA2011_2011-06-27.crt" https://www.microsoft.com/pkiops/certs/MicCorUEFCA2011_2011-06-27.crt
-    fi
-
-    # Digitally sign Microsoft certificates
-    if [ ! -f "$efikeys_dir/MicWinProPCA2011_2011-10-19.pem" ]; then
-    openssl x509 -in "$efikeys_dir/MicWinProPCA2011_2011-10-19.crt" -inform DER -out "$efikeys_dir/MicWinProPCA2011_2011-10-19.pem" -outform PEM
-    fi
-    if [ ! -f "$efikeys_dir/MicCorUEFCA2011_2011-06-27.pem" ]; then
-    openssl x509 -in "$efikeys_dir/MicCorUEFCA2011_2011-06-27.crt" -inform DER -out "$efikeys_dir/MicCorUEFCA2011_2011-06-27.pem" -outform PEM
-    fi
-
     # Convert PEM files to ESL format suitable for UEFI Secure Boot
     if [ ! -f "$efikeys_dir/PK.esl" ]; then
     cert-to-efi-sig-list -g $(uuidgen) "$efikeys_dir/PK.pem" "$efikeys_dir/PK.esl"
@@ -154,16 +134,10 @@ function create_or_download_cert_key {
     if [ ! -f "$efikeys_dir/ISK.esl" ]; then
     cert-to-efi-sig-list -g $(uuidgen) "$efikeys_dir/ISK.pem" "$efikeys_dir/ISK.esl"
     fi
-    if [ ! -f "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl" ]; then
-    cert-to-efi-sig-list -g $(uuidgen) "$efikeys_dir/MicWinProPCA2011_2011-10-19.pem" "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl"
-    fi
-    if [ ! -f "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl" ]; then
-    cert-to-efi-sig-list -g $(uuidgen) "$efikeys_dir/MicCorUEFCA2011_2011-06-27.pem" "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl"
-    fi
 
-    # Create the database including the signed Microsoft certificates
+    # Create the database
     if [ ! -f "$efikeys_dir/db.esl" ]; then
-    cat "$efikeys_dir/ISK.esl" "$efikeys_dir/MicWinProPCA2011_2011-10-19.esl" "$efikeys_dir/MicCorUEFCA2011_2011-06-27.esl" > "$efikeys_dir/db.esl"
+    cat "$efikeys_dir/ISK.esl" > "$efikeys_dir/db.esl"
     fi
 
     # Digitally sign ESL files
@@ -190,8 +164,8 @@ function create_or_download_cert_key {
     ISK_pem="$efikeys_dir/ISK.pem"
 }
 
-# Call the function to create or download certificate and key
-create_or_download_cert_key
+# Call the function to create certificate and key
+create_cert_key
 
 if [ -d "$download_dir/X64" ] && [ -d "$download_dir/Docs" ] && [ -d "$download_dir/Utilities" ]; then
   echo "All three directories (X64, Docs, Utilities) exist."
