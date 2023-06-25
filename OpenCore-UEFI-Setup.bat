@@ -1,6 +1,6 @@
 @echo off
 
-:: Check if running with administrative privileges
+REM Check if running with administrative privileges
 net session >nul 2>&1
 if %errorLevel% EQU 0 (
     echo Running with administrative privileges.
@@ -12,14 +12,6 @@ if %errorLevel% EQU 0 (
 
 set "script_dir=%~dp0"
 cd /d "%script_dir%"
-
-ping www.google.com -n 1 > nul 2>&1
-if errorlevel 1 (
-    echo Internet connection not available.
-    pause
-    exit
-)
-echo Internet connection is available.
 
 REM Check if Chocolatey is installed
 where choco > nul 2>&1
@@ -145,8 +137,11 @@ if not exist "%system_dir%" (
   mkdir "%system_dir%"
 )
 
-REM Function to create certificate and key
-:create_cert_key
+set "X64=%script_dir%\Download\X64"
+set "X64_Signed=%script_dir%\Download\X64-Signed"
+
+REM create certificate and key
+
 REM Create PK (Platform Key)
 if not exist "%efikeys_dir%\PK.key" (
     del "%efikeys_dir%\PK.key" 2>nul
@@ -210,50 +205,39 @@ if not exist "%efikeys_dir%\db.auth" (
 set ISK_key="%efikeys_dir%\ISK.key"
 set ISK_pem="%efikeys_dir%\ISK.pem"
 
-goto :eof
-
-REM Call the function to create certificate and key
-call :create_cert_key
-
 if exist "%download_dir%\X64" if exist "%download_dir%\Docs" if exist "%download_dir%\Utilities" (
   echo All three directories (X64, Docs, Utilities) exist.
-  REM Add your desired code here when all directories exist
+  rem Add your desired code here when all directories exist
 ) else (
   echo One or more directories are missing.
-  REM Define the GitHub repository
-  set repository=acidanthera/OpenCorePkg
-  REM Get the latest release information from the GitHub API
-  for /f "usebackq tokens=*" %%i in (`curl -s "https://api.github.com/repos/%repository%/releases/latest"`) do set release_info=%%i
-  REM Filter out debug assets
-  for /f "usebackq tokens=*" %%i in (`echo %release_info% ^| jq -r ".assets ^| map(select(.name | test(\"DEBUG\"; \"i\") ^| not)) ^| .[0].browser_download_url"`) do set download_url=%%i
-  REM Extract the file name from the download URL
-  for %%i in ("%download_url%") do set file_name=%%~nxi
-  REM Define the destination file path
-  set destination_path=%download_dir%\%file_name%
-  REM Download the latest OpenCore zip file
-  curl -L -o "%destination_path%" "%download_url%"
-  REM Check if X64 directory is missing
+  rem Define the GitHub repository
+  set "repository=acidanthera/OpenCorePkg"
+  rem Get the latest release information from the GitHub API
+  for /f "usebackq delims=" %%G in (`curl.exe -s "https://api.github.com/repos/%repository%/releases/latest"`) do set "release_info=%%G"
+  rem Filter out debug assets using PowerShell
+  for /f "usebackq tokens=2 delims=: " %%G in (`echo %%release_info%% ^| powershell -Command "$json = ConvertFrom-Json -InputObject (Get-Content -Raw); $json.assets | Where-Object { $_.name -notmatch 'DEBUG' } | Select-Object -First 1 -ExpandProperty browser_download_url"`) do set "download_url=%%G"
+  rem Extract the file name from the download URL
+  for %%G in ("%download_url%") do set "file_name=%%~nG"
+  rem Define the destination file path
+  set "destination_path=%download_dir%\%file_name%"
+  rem Download the latest OpenCore zip file
+  curl.exe -L -o "%destination_path%" "%download_url%"
+  rem Check if X64 directory is missing
   if not exist "%download_dir%\X64" (
-    REM unzip X64 directory from OpenCore
-    $archive = Get-Item -Path "%destination_path%"
-    $extractPath = Join-Path -Path "%download_dir%" -ChildPath X64
-    Expand-Archive -Path $archive.FullName -DestinationPath "%download_dir%" -Force
+    rem Unzip X64 directory from OpenCore
+    powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory('%destination_path%', '%download_dir%'); $folderPath = Join-Path '%download_dir%' 'X64'"
   )
-  REM Check if Docs directory is missing
+  rem Check if Docs directory is missing
   if not exist "%download_dir%\Docs" (
-    REM unzip Docs directory from OpenCore
-    $archive = Get-Item -Path "%destination_path%"
-    $extractPath = Join-Path -Path "%download_dir%" -ChildPath Docs
-    Expand-Archive -Path $archive.FullName -DestinationPath "%download_dir%" -Force
+    rem Unzip Docs directory from OpenCore
+    powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory('%destination_path%', '%download_dir%'); $folderPath = Join-Path '%download_dir%' 'Docs'"
   )
-  REM Check if Utilities directory is missing
+  rem Check if Utilities directory is missing
   if not exist "%download_dir%\Utilities" (
-    REM unzip Utilities directory from OpenCore
-    $archive = Get-Item -Path "%destination_path%"
-    $extractPath = Join-Path -Path "%download_dir%" -ChildPath Utilities
-    Expand-Archive -Path $archive.FullName -DestinationPath "%download_dir%" -Force
+    rem Unzip Utilities directory from OpenCore
+    powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory('%destination_path%', '%download_dir%'); $folderPath = Join-Path '%download_dir%' 'Utilities'"
   )
-  REM Clean up
+  rem Clean up
   del "%destination_path%" 2>nul
 )
 
@@ -262,109 +246,120 @@ set "src_folder=%system_dir%"
 REM Destination folder
 set "dest_folder=%download_dir%\X64\EFI\OC"
 REM Copy files with overwrite
-xcopy /s /y "%src_folder%\*" "%dest_folder%\"
+xcopy /E /Y "%src_folder%\*" "%dest_folder%"
 
 REM Create the X64-Signed directory
-IF EXIST "%download_dir%\X64-Signed" (
-  RD /S /Q "%download_dir%\X64-Signed"
+if exist "%X64_Signed%" (
+  rmdir /S /Q "%X64_Signed%"
 )
-MD "%download_dir%\X64-Signed"
-SET "X64_Signed=%download_dir%\X64-Signed"
+mkdir "%X64_Signed%"
 
 REM Source folder
-set "src_folder=%download_dir%\X64"
+set "src_folder=%X64%"
 REM Destination folder
-set "dest_folder=%download_dir%\X64-Signed"
+set "dest_folder=%X64_Signed%"
 REM Copy files with overwrite
-xcopy /s /y "%src_folder%\*" "%dest_folder%\"
+xcopy /E /Y "%src_folder%\*" "%dest_folder%"
 
 REM Sign .efi .kext files in X64-Signed directory and subdirectories
 for /r %X64_Signed% %%F in (*.efi, *.kext) do (
     rem Sign the file using osslsigncode and override the original file
-    osslsigncode sign -key "%ISK_key%" -cert "%ISK_pem%" -in "%%F" -out "%%F"
+    osslsigncode sign -cert "%ISK_pem%" -key "%ISK_key%" -h sha256 -n "OpenCore ISK Image Signing Key" -in "%%F" -out "%%F"
 )
 
 REM Function to install OpenCore without secure boot
 :install_without_secure_boot
 REM Find the EFI partition
-for /f "usebackq tokens=2 delims==" %%G in (`wmic logicaldisk where "volumename='EFI'" get deviceid /format:value`) do set "efi_partition=%%G"
+for /f "tokens=2 delims==" %%I in ('wmic volume where "BootVolume=true" get DeviceID /value') do set "efi_partition=%%I"
 REM Mount the EFI partition
+mountvol %efi_partition% /d
 mountvol %efi_partition% /s
 REM Copy files from X64-Signed folder to the EFI partition
-xcopy /E /I "%download_dir%\X64" %efi_partition%
+xcopy /E /I /Y "%download_dir%\X64" "%efi_partition%\EFI\OC"
+REM Set the description for the boot option
+set "BOOT_OPTION_DESC=Opencore Bootloader"
 REM Set the path to the Opencore bootloader in the EFI partition
-set EFI_PATH=\EFI\OC\OpenCore.efi
-REM Check if the OpenCore boot entry already exists
-bcdedit /enum | findstr /c:"Opencore Bootloader" > nul
-IF %errorlevel%==0 (
-    echo OpenCore boot entry already exists.
-) ELSE (
-    echo OpenCore boot entry does not exist. Creating...
-    REM Use the bcdedit command to create a new boot entry for OpenCore
-    bcdedit /create /d "Opencore Bootloader" /application bootsector
-    REM Set the path to the OpenCore EFI file using the detected EFI partition
-    bcdedit /set {default} device partition=%efi_partition%
-    bcdedit /set {default} path %EFI_PATH%
-    REM Set OpenCore as the default boot entry
-    bcdedit /default {default}
+set "EFI_PATH=\EFI\OC\OpenCore.efi"
+REM Check if the boot option already exists
+set "existing_boot_option="
+for /f "tokens=*" %%A in ('bcdedit /enum firmware') do (
+  echo %%A | findstr /i "%BOOT_OPTION_DESC%" >nul
+  if not errorlevel 1 set "existing_boot_option=1"
+)
+if "%existing_boot_option%"=="1" (
+  echo Opencore boot option already exists.
+) else (
+  REM Add the boot option using bcdedit
+  bcdedit /create /d "%BOOT_OPTION_DESC%" /application bootsector
+  for /f "tokens=2 delims={}" %%B in ('bcdedit /enum firmware ^| findstr /i "{bootmgr}"') do set "bootmgr_guid=%%B"
+  bcdedit /set %bootmgr_guid% description "%BOOT_OPTION_DESC%"
+  bcdedit /set %bootmgr_guid% path "%EFI_PATH%"
+  bcdedit /displayorder %bootmgr_guid% /addlast
 )
 REM Unmount the EFI partition
 mountvol %efi_partition% /d
-goto :EOF
+
+goto :end
 
 REM Function to install OpenCore with secure boot
 :install_with_secure_boot
-REM Add .auth files into UEFI firmware
-$PKFile = '%efikeys_dir%\PK.auth'
-$KEKFile = '%efikeys_dir%\KEK.auth'
-$dbFile = '%efikeys_dir%\db.auth'
-$PKImported = Get-SecureBootUEFIFile | Where-Object { $_.FilePath -eq $PKFile }
-$KEKImported = Get-SecureBootUEFIFile | Where-Object { $_.FilePath -eq $KEKFile }
-$dbImported = Get-SecureBootUEFIFile | Where-Object { $_.FilePath -eq $dbFile }
-if (-not $PKImported) {
-    Add-SecureBootUEFIFile -FilePath $PKFile
-}
-if (-not $KEKImported) {
-    Add-SecureBootUEFIFile -FilePath $KEKFile
-}
-if (-not $dbImported) {
-    Add-SecureBootUEFIFile -FilePath $dbFile
-}
+REM add .auth files into uefi firmware
+REM Check if the PK.auth file is already imported
+powershell -Command "& { if (Test-SecureBootUEFIFirmware -PKAuthFile '%efikeys_dir%\PK.auth') { exit 0 } else { exit 1 } }"
+if "%errorlevel%"=="1" (
+  powershell -Command "& { Import-SecureBootUEFIFirmware -PKAuthFile '%efikeys_dir%\PK.auth' }"
+)
+REM Check if the KEK.auth file is already imported
+powershell -Command "& { if (Test-SecureBootUEFIFirmware -KEKAuthFile '%efikeys_dir%\KEK.auth') { exit 0 } else { exit 1 } }"
+if "%errorlevel%"=="1" (
+  powershell -Command "& { Import-SecureBootUEFIFirmware -KEKAuthFile '%efikeys_dir%\KEK.auth' }"
+)
+REM Check if the db.auth file is already imported
+powershell -Command "& { if (Test-SecureBootUEFIFirmware -DBAuthFile '%efikeys_dir%\db.auth') { exit 0 } else { exit 1 } }"
+if "%errorlevel%"=="1" (
+  powershell -Command "& { Import-SecureBootUEFIFirmware -DBAuthFile '%efikeys_dir%\db.auth' }"
+)
 REM Find the EFI partition
-for /f "usebackq tokens=2 delims==" %%G in (`wmic logicaldisk where "volumename='EFI'" get deviceid /format:value`) do set "efi_partition=%%G"
+for /f "tokens=2 delims==" %%I in ('wmic volume where "BootVolume=true" get DeviceID /value') do set "efi_partition=%%I"
 REM Mount the EFI partition
+mountvol %efi_partition% /d
 mountvol %efi_partition% /s
 REM Copy files from X64-Signed folder to the EFI partition
-xcopy /E /I "%download_dir%\X64-Signed" %efi_partition%
+xcopy /E /I /Y "%download_dir%\X64-Signed" "%efi_partition%\EFI\OC"
+REM Set the description for the boot option
+set "BOOT_OPTION_DESC=Opencore Bootloader"
 REM Set the path to the Opencore bootloader in the EFI partition
-set EFI_PATH=\EFI\OC\OpenCore.efi
-REM Check if the OpenCore boot entry already exists
-bcdedit /enum | findstr /c:"Opencore Bootloader" > nul
-IF %errorlevel%==0 (
-    echo OpenCore boot entry already exists.
-) ELSE (
-    echo OpenCore boot entry does not exist. Creating...
-    REM Use the bcdedit command to create a new boot entry for OpenCore
-    bcdedit /create /d "Opencore Bootloader" /application bootsector
-    REM Set the path to the OpenCore EFI file using the detected EFI partition
-    bcdedit /set {default} device partition=%efi_partition%
-    bcdedit /set {default} path %EFI_PATH%
-    REM Set OpenCore as the default boot entry
-    bcdedit /default {default}
+set "EFI_PATH=\EFI\OC\OpenCore.efi"
+REM Check if the boot option already exists
+set "existing_boot_option="
+for /f "tokens=*" %%A in ('bcdedit /enum firmware') do (
+  echo %%A | findstr /i "%BOOT_OPTION_DESC%" >nul
+  if not errorlevel 1 set "existing_boot_option=1"
+)
+if "%existing_boot_option%"=="1" (
+  echo Opencore boot option already exists.
+) else (
+  REM Add the boot option using bcdedit
+  bcdedit /create /d "%BOOT_OPTION_DESC%" /application bootsector
+  for /f "tokens=2 delims={}" %%B in ('bcdedit /enum firmware ^| findstr /i "{bootmgr}"') do set "bootmgr_guid=%%B"
+  bcdedit /set %bootmgr_guid% description "%BOOT_OPTION_DESC%"
+  bcdedit /set %bootmgr_guid% path "%EFI_PATH%"
+  bcdedit /displayorder %bootmgr_guid% /addlast
 )
 REM Unmount the EFI partition
 mountvol %efi_partition% /d
-goto :EOF
+
+goto :end
 
 REM Prompt user for installation type
-echo "OpenCore Installation"
-echo "---------------------"
-echo "Please select the installation type:"
-echo "1. Install with secure boot"
-echo "2. Install without secure boot"
-echo "3. Do not install OpenCore"
-echo "BEFORE INSTALL MUST MODIFY system-files FOLDER FOR YOUR SYSTEM"
-echo "anything inside system-files will be added to Download/X64/EFI/OC/"
+echo OpenCore Installation
+echo ---------------------
+echo Please select the installation type:
+echo 1. Install with secure boot
+echo 2. Install without secure boot
+echo 3. Do not install OpenCore
+echo BEFORE INSTALL MUST MODIFY system-files FOLDER FOR YOUR SYSTEM
+echo anything inside system-files will be added to Download\X64\EFI\OC\
 set /p "choice=Enter your choice (1, 2, or 3): "
 
 REM Validate the user's choice and execute the appropriate function
@@ -373,7 +368,9 @@ if "%choice%"=="1" (
 ) else if "%choice%"=="2" (
   call :install_without_secure_boot
 ) else if "%choice%"=="3" (
-  echo "Skipping OpenCore installation."
+  echo Skipping OpenCore installation.
 ) else (
-  echo "Invalid choice. Please select 1, 2, or 3."
+  echo Invalid choice. Please select 1, 2, or 3.
 )
+
+:end
