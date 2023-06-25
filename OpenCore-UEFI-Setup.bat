@@ -264,7 +264,7 @@ xcopy /E /Y "%src_folder%\*" "%dest_folder%"
 REM Sign .efi .kext files in X64-Signed directory and subdirectories
 for /r %X64_Signed% %%F in (*.efi, *.kext) do (
     rem Sign the file using osslsigncode and override the original file
-    osslsigncode sign -cert "%ISK_pem%" -key "%ISK_key%" -h sha256 -n "OpenCore ISK Image Signing Key" -in "%%F" -out "%%F"
+    osslsigncode sign -cert "%ISK_pem%" -key "%ISK_key%" -h sha256 -in "%%F" -out "%%F"
 )
 
 REM Function to install OpenCore without secure boot
