@@ -6,7 +6,7 @@ if %errorLevel% EQU 0 (
     echo Running with administrative privileges.
 ) else (
     echo Restarting with administrative privileges...
-    powershell.exe -Command "Start-Process -FilePath '%0' -Verb RunAs"
+    powershell.exe -Command "Start-Process -FilePath \"%0\" -Verb RunAs"
     exit /B
 )
 
@@ -42,7 +42,7 @@ IF %ERRORLEVEL% NEQ 0 (
     echo Installing OpenSSL...
 
     REM Install OpenSSL using Chocolatey
-    choco install openssl.light -y
+    choco install openssl -y
 
     REM Check if installation was successful
     where openssl > nul 2>&1
@@ -55,28 +55,6 @@ IF %ERRORLEVEL% NEQ 0 (
     )
 ) ELSE (
     echo OpenSSL is already installed.
-)
-
-REM Check if Osslsigncode is installed
-where osslsigncode > nul 2>&1
-IF %ERRORLEVEL% NEQ 0 (
-    REM Osslsigncode not found, installing it
-    echo Installing Osslsigncode...
-
-    REM Install Osslsigncode using Chocolatey
-    choco install osslsigncode -y
-
-    REM Check if installation was successful
-    where osslsigncode > nul 2>&1
-    IF %ERRORLEVEL% EQU 0 (
-        echo Osslsigncode installed successfully.
-    ) ELSE (
-        echo Failed to install Osslsigncode.
-        pause
-        exit /b
-    )
-) ELSE (
-    echo Osslsigncode is already installed.
 )
 
 REM Check if Curl is installed
@@ -99,6 +77,28 @@ IF %ERRORLEVEL% NEQ 0 (
     )
 ) ELSE (
     echo Curl is already installed.
+)
+
+REM Check if 7zip is installed
+7z > nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    REM 7zip not found, installing it
+    echo Installing 7zip...
+
+    REM Install 7zip using Chocolatey
+    choco install 7zip -y
+
+    REM Check if installation was successful
+    7z > nul 2>&1
+    IF %ERRORLEVEL% EQU 0 (
+        echo 7zip installed successfully.
+    ) ELSE (
+        echo Failed to install 7zip.
+        pause
+        exit /b
+    )
+) ELSE (
+    echo 7zip is already installed.
 )
 
 REM Check if SecureBootUEFI module is installed
@@ -137,9 +137,6 @@ if not exist "%system_dir%" (
   mkdir "%system_dir%"
 )
 
-set "X64=%script_dir%\Download\X64"
-set "X64_Signed=%script_dir%\Download\X64-Signed"
-
 REM create certificate and key
 
 REM Create PK (Platform Key)
@@ -163,18 +160,23 @@ if not exist "%efikeys_dir%\ISK.key" (
     openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore ISK Image Signing Key/" -keyout "%efikeys_dir%\ISK.key" -out "%efikeys_dir%\ISK.pem" -outform PEM
 )
 
+REM Create PFX
+if not exist "%efikeys_dir%\ISK.pfx" (
+openssl pkcs12 -export -out "%efikeys_dir%\ISK.pfx" -inkey "%efikeys_dir%\ISK.key" -in "%efikeys_dir%\ISK.pem"
+)
+
 REM Permission for key files
-attrib +r "%efikeys_dir%\*.key"
+icacls "%efikeys_dir%\*.key" /inheritance:r /grant:r "%USERNAME%":(R)
 
 REM Convert PEM files to ESL format suitable for UEFI Secure Boot
 if not exist "%efikeys_dir%\PK.esl" (
-    certutil -encode "%efikeys_dir%\PK.pem" "%efikeys_dir%\PK.esl"
+    certutil -encode -f "%efikeys_dir%\PK.pem" "%efikeys_dir%\PK.esl"
 )
 if not exist "%efikeys_dir%\KEK.esl" (
-    certutil -encode "%efikeys_dir%\KEK.pem" "%efikeys_dir%\KEK.esl"
+    certutil -encode -f "%efikeys_dir%\KEK.pem" "%efikeys_dir%\KEK.esl"
 )
 if not exist "%efikeys_dir%\ISK.esl" (
-    certutil -encode "%efikeys_dir%\ISK.pem" "%efikeys_dir%\ISK.esl"
+    certutil -encode -f "%efikeys_dir%\ISK.pem" "%efikeys_dir%\ISK.esl"
 )
 
 REM Create the database
@@ -207,38 +209,38 @@ set ISK_pem="%efikeys_dir%\ISK.pem"
 
 if exist "%download_dir%\X64" if exist "%download_dir%\Docs" if exist "%download_dir%\Utilities" (
   echo All three directories (X64, Docs, Utilities) exist.
-  rem Add your desired code here when all directories exist
+  REM Add your desired code here when all directories exist
 ) else (
   echo One or more directories are missing.
-  rem Define the GitHub repository
+  REM Define the GitHub repository
   set "repository=acidanthera/OpenCorePkg"
-  rem Get the latest release information from the GitHub API
-  for /f "usebackq delims=" %%G in (`curl.exe -s "https://api.github.com/repos/%repository%/releases/latest"`) do set "release_info=%%G"
-  rem Filter out debug assets using PowerShell
-  for /f "usebackq tokens=2 delims=: " %%G in (`echo %%release_info%% ^| powershell -Command "$json = ConvertFrom-Json -InputObject (Get-Content -Raw); $json.assets | Where-Object { $_.name -notmatch 'DEBUG' } | Select-Object -First 1 -ExpandProperty browser_download_url"`) do set "download_url=%%G"
-  rem Extract the file name from the download URL
-  for %%G in ("%download_url%") do set "file_name=%%~nG"
-  rem Define the destination file path
+  REM Get the latest release information from the GitHub API
+  for /f "usebackq tokens=2 delims=: " %%A in (`curl -s "https://api.github.com/repos/%repository%/releases/latest" ^| findstr "browser_download_url"`) do (
+    set "download_url=%%~A"
+  )
+  REM Extract the file name from the download URL
+  for %%B in ("%download_url%") do set "file_name=%%~nxB"
+  REM Define the destination file path
   set "destination_path=%download_dir%\%file_name%"
-  rem Download the latest OpenCore zip file
-  curl.exe -L -o "%destination_path%" "%download_url%"
-  rem Check if X64 directory is missing
+  REM Download the latest OpenCore zip file
+  curl -L -o "%destination_path%" "%download_url%"
+  REM Check if X64 directory is missing
   if not exist "%download_dir%\X64" (
-    rem Unzip X64 directory from OpenCore
-    powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory('%destination_path%', '%download_dir%'); $folderPath = Join-Path '%download_dir%' 'X64'"
+    REM Unzip X64 directory from OpenCore
+    7z x "%destination_path%" -o"%download_dir%" "X64/*"
   )
-  rem Check if Docs directory is missing
+  REM Check if Docs directory is missing
   if not exist "%download_dir%\Docs" (
-    rem Unzip Docs directory from OpenCore
-    powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory('%destination_path%', '%download_dir%'); $folderPath = Join-Path '%download_dir%' 'Docs'"
+    REM Unzip Docs directory from OpenCore
+    7z x "%destination_path%" -o"%download_dir%" "Docs/*"
   )
-  rem Check if Utilities directory is missing
+  REM Check if Utilities directory is missing
   if not exist "%download_dir%\Utilities" (
-    rem Unzip Utilities directory from OpenCore
-    powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory('%destination_path%', '%download_dir%'); $folderPath = Join-Path '%download_dir%' 'Utilities'"
+    REM Unzip Utilities directory from OpenCore
+    7z x "%destination_path%" -o"%download_dir%" "Utilities/*"
   )
-  rem Clean up
-  del "%destination_path%" 2>nul
+  REM Clean up
+  del "%destination_path%"
 )
 
 REM Source folder
@@ -249,6 +251,8 @@ REM Copy files with overwrite
 xcopy /E /Y "%src_folder%\*" "%dest_folder%"
 
 REM Create the X64-Signed directory
+set "X64_Signed=%download_dir%\X64-Signed"
+set "X64=%download_dir%\X64"
 if exist "%X64_Signed%" (
   rmdir /S /Q "%X64_Signed%"
 )
@@ -262,13 +266,25 @@ REM Copy files with overwrite
 xcopy /E /Y "%src_folder%\*" "%dest_folder%"
 
 REM Sign .efi .kext files in X64-Signed directory and subdirectories
-for /r %X64_Signed% %%F in (*.efi, *.kext) do (
-    rem Sign the file using osslsigncode and override the original file
-    osslsigncode sign -cert "%ISK_pem%" -key "%ISK_key%" -h sha256 -in "%%F" -out "%%F"
+for /R "%X64_Signed%" %%G in (*.efi, *.kext) do (
+    signtool sign /f "%efikeys_dir%\ISK.pfx" /td sha256 /fd sha256 /v "%%G"
 )
 
-REM Function to install OpenCore without secure boot
-:install_without_secure_boot
+REM Prompt user for installation type
+echo OpenCore Installation
+echo ---------------------
+echo Please select the installation type:
+echo 1. Install with secure boot
+echo 2. Install without secure boot
+echo 3. Do not install OpenCore
+echo BEFORE INSTALL MUST MODIFY system-files FOLDER FOR YOUR SYSTEM
+echo anything inside system-files will be added to Download\X64\EFI\OC\
+
+choice /C 123 /N
+
+if errorlevel 3 (
+echo Skipping OpenCore installation.
+) else if errorlevel 2 (
 REM Find the EFI partition
 for /f "tokens=2 delims==" %%I in ('wmic volume where "BootVolume=true" get DeviceID /value') do set "efi_partition=%%I"
 REM Mount the EFI partition
@@ -298,11 +314,7 @@ if "%existing_boot_option%"=="1" (
 )
 REM Unmount the EFI partition
 mountvol %efi_partition% /d
-
-goto :end
-
-REM Function to install OpenCore with secure boot
-:install_with_secure_boot
+) else if errorlevel 1 (
 REM add .auth files into uefi firmware
 REM Check if the PK.auth file is already imported
 powershell -Command "& { if (Test-SecureBootUEFIFirmware -PKAuthFile '%efikeys_dir%\PK.auth') { exit 0 } else { exit 1 } }"
@@ -348,29 +360,4 @@ if "%existing_boot_option%"=="1" (
 )
 REM Unmount the EFI partition
 mountvol %efi_partition% /d
-
-goto :end
-
-REM Prompt user for installation type
-echo OpenCore Installation
-echo ---------------------
-echo Please select the installation type:
-echo 1. Install with secure boot
-echo 2. Install without secure boot
-echo 3. Do not install OpenCore
-echo BEFORE INSTALL MUST MODIFY system-files FOLDER FOR YOUR SYSTEM
-echo anything inside system-files will be added to Download\X64\EFI\OC\
-set /p "choice=Enter your choice (1, 2, or 3): "
-
-REM Validate the user's choice and execute the appropriate function
-if "%choice%"=="1" (
-  call :install_with_secure_boot
-) else if "%choice%"=="2" (
-  call :install_without_secure_boot
-) else if "%choice%"=="3" (
-  echo Skipping OpenCore installation.
-) else (
-  echo Invalid choice. Please select 1, 2, or 3.
 )
-
-:end
