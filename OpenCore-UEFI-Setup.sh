@@ -43,20 +43,19 @@ if ! check_package openssl || ! check_package unzip || ! check_package mokutil |
   download_dir="$script_dir/Download"
   efikeys_dir="$script_dir/efikeys"
   if ! check_directory "$download_dir/X64" || ! check_directory "$download_dir/Docs" || ! check_directory "$download_dir/Utilities" || ! check_directory "$efikeys_dir"; then
-      # Check internet connectivity
-      if dig +short google.com > /dev/null 2>&1; then
-        echo "Internet is available."
-      else
-        # New nameserver IP addresses
-        primary_dns="8.8.8.8"
-        secondary_dns="8.8.4.4"
-        # Backup the original resolv.conf file
-        sudo cp /etc/resolv.conf /etc/resolv.conf.backup
-        # Update the nameserver IP addresses
-        sudo sed -i "s/^nameserver .*/nameserver $primary_dns\nnameserver $secondary_dns/" /etc/resolv.conf
-        echo "Nameserver configuration updated."
-        echo "Internet is available."
-      fi
+    # Check internet connectivity
+    if dig +short google.com > /dev/null 2>&1; then
+      echo "Internet is available."
+    else
+      # New nameserver IP addresses
+      primary_dns="8.8.8.8"
+      secondary_dns="8.8.4.4"
+      # Backup the original resolv.conf file
+      sudo cp /etc/resolv.conf /etc/resolv.conf.backup
+      # Update the nameserver IP addresses
+      sudo sed -i "s/^nameserver .*/nameserver $primary_dns\nnameserver $secondary_dns/" /etc/resolv.conf
+      echo "Nameserver configuration updated."
+      echo "Internet is available."
     fi
   fi
 else
@@ -119,6 +118,19 @@ function create_cert_key {
     if [ ! -f "$efikeys_dir/ISK.key" ] || [ ! -f "$efikeys_dir/ISK.pem" ]; then
     rm "$efikeys_dir/ISK.key" 2>/dev/null && rm "$efikeys_dir/ISK.pem" 2>/dev/null
     openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore ISK Image Signing Key/" -keyout "$efikeys_dir/ISK.key" -out "$efikeys_dir/ISK.pem" -outform PEM
+    fi
+
+    # Create ISK (Initial Supplier Key) if the files don't exist or are not in the expected format
+    if [ ! -f "$efikeys_dir/ISK.key" ] || [ ! -f "$efikeys_dir/ISK.pem" ] || ! openssl rsa -noout -text -in "$efikeys_dir/ISK.key" >/dev/null 2>&1 || ! openssl x509 -noout -text -in "$efikeys_dir/ISK.pem" >/dev/null 2>&1; then
+        rm "$efikeys_dir/ISK.key" 2>/dev/null
+        rm "$efikeys_dir/ISK.pem" 2>/dev/null
+        openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore ISK Image Signing Key/" -keyout "$efikeys_dir/ISK.key" -out "$efikeys_dir/ISK.pem" -outform PEM
+        # Verify if the files were created in the expected format
+        if ! openssl rsa -noout -text -in "$efikeys_dir/ISK.key" >/dev/null 2>&1 || ! openssl x509 -noout -text -in "$efikeys_dir/ISK.pem" >/dev/null 2>&1; then
+            echo "Error: Failed to create ISK.key and ISK.pem in the expected format."
+            read -p "Press Enter to continue..."
+            exit 1
+        fi
     fi
 
     # Permission for key files
@@ -309,7 +321,8 @@ echo "2. Install without secure boot"
 echo "3. Do not install OpenCore"
 echo "BEFORE INSTALL MUST MODIFY system-files FOLDER FOR YOUR SYSTEM"
 echo "anything inside system-files will be added to Download/X64/EFI/OC/"
-read -p "Enter your choice (1, 2, or 3): " choice
+echo -n "Enter your choice (1, 2, or 3): "
+read choice
 
 # Validate the user's choice and execute the appropriate function
 if [[ $choice == 1 ]]; then
