@@ -120,19 +120,6 @@ function create_cert_key {
     openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore ISK Image Signing Key/" -keyout "$efikeys_dir/ISK.key" -out "$efikeys_dir/ISK.pem" -outform PEM
     fi
 
-    # Create ISK (Initial Supplier Key) if the files don't exist or are not in the expected format
-    if [ ! -f "$efikeys_dir/ISK.key" ] || [ ! -f "$efikeys_dir/ISK.pem" ] || ! openssl rsa -noout -text -in "$efikeys_dir/ISK.key" >/dev/null 2>&1 || ! openssl x509 -noout -text -in "$efikeys_dir/ISK.pem" >/dev/null 2>&1; then
-        rm "$efikeys_dir/ISK.key" 2>/dev/null
-        rm "$efikeys_dir/ISK.pem" 2>/dev/null
-        openssl req -new -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -subj "/CN=OpenCore ISK Image Signing Key/" -keyout "$efikeys_dir/ISK.key" -out "$efikeys_dir/ISK.pem" -outform PEM
-        # Verify if the files were created in the expected format
-        if ! openssl rsa -noout -text -in "$efikeys_dir/ISK.key" >/dev/null 2>&1 || ! openssl x509 -noout -text -in "$efikeys_dir/ISK.pem" >/dev/null 2>&1; then
-            echo "Error: Failed to create ISK.key and ISK.pem in the expected format."
-            read -p "Press Enter to continue..."
-            exit 1
-        fi
-    fi
-
     # Permission for key files
     chmod 0600 "$efikeys_dir"/*.key
 
