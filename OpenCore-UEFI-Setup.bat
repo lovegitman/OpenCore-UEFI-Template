@@ -101,6 +101,36 @@ IF %ERRORLEVEL% NEQ 0 (
     echo 7zip is already installed.
 )
 
+REM Check if Signtool is installed
+where signtool > nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    REM Signtool not found, installing it
+    echo Installing Signtool...
+
+    REM Install Signtool
+    set "URL=https://github.com/lovegitman/OpenCore-UEFI-Template/raw/main/Windows%20SDK%20Signing%20Tools-x86_en-us.msi"
+    set "MSI_FILE=Windows SDK Signing Tools-x86.msi"
+
+    echo Downloading %MSI_FILE%...
+    curl -o "%MSI_FILE%" "%URL%"
+
+    echo Installing %MSI_FILE%...
+    msiexec /i "%MSI_FILE%" /qn
+    del "%MSI_FILE%"
+
+    REM Check if installation was successful
+    where signtool > nul 2>&1
+    IF %ERRORLEVEL% EQU 0 (
+        echo Signtool installed successfully.
+    ) ELSE (
+        echo Failed to install Signtool.
+        pause
+        exit /b
+    )
+) ELSE (
+    echo Signtool is already installed.
+)
+
 REM Check if SecureBootUEFI module is installed
 powershell.exe -NoProfile -Command "Get-Module SecureBootUEFI -ListAvailable" > nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
@@ -269,6 +299,7 @@ REM Sign .efi .kext files in X64-Signed directory and subdirectories
 for /R "%X64_Signed%" %%G in (*.efi, *.kext) do (
     signtool sign /f "%efikeys_dir%\ISK.pfx" /td sha256 /fd sha256 /v "%%G"
 )
+pause
 
 REM Prompt user for installation type
 echo OpenCore Installation
