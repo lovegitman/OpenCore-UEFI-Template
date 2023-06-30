@@ -20,7 +20,8 @@ Before running script, ensure that you have the following:
 - Appropriate permissions to modify system files.
 - Basic knowledge of EFI, OpenCore, and system booting.
 - For Ubuntu & Fedora Based Linux Distro or Windows
-
+- For X64 Computer
+  
 ## Usage
 Linux:
 1. chmod +x OpenCore-UEFI-Setup.sh && ./OpenCore-UEFI-Setup.sh
