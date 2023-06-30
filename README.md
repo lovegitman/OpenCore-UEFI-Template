@@ -19,8 +19,7 @@ Before running script, ensure that you have the following:
 - Internet connectivity.
 - Appropriate permissions to modify system files.
 - Basic knowledge of EFI, OpenCore, and system booting.
-- For Ubuntu & Fedora Based Linux Distro
-- Windows Version is not ready yet
+- For Ubuntu & Fedora Based Linux Distro or Windows
 
 ## Usage
 Linux:
