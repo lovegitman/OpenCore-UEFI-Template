@@ -303,7 +303,6 @@ REM Sign .efi .kext files in X64-Signed directory and subdirectories
 for /R "%X64_Signed%" %%G in (*.efi, *.kext) do (
     signtool sign /f "%efikeys_dir%\ISK.pfx" /td sha256 /fd sha256 /v "%%G"
 )
-pause
 
 REM Prompt user for installation type
 echo OpenCore Installation
