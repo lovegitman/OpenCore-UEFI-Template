@@ -109,10 +109,12 @@ IF %ERRORLEVEL% NEQ 0 (
 
     REM Install Signtool
     set "URL=https://github.com/lovegitman/OpenCore-UEFI-Template/raw/main/Windows%20SDK%20Signing%20Tools-x86_en-us.msi"
-    set "MSI_FILE=Windows SDK Signing Tools-x86.msi"
+    set "MSI_FILE=Windows SDK Signing Tools-x86_en-us.msi"
 
+    if [ ! -f "%MSI_FILE%" ]; then
     echo Downloading %MSI_FILE%...
     curl -o "%MSI_FILE%" "%URL%"
+    fi
 
     echo Installing %MSI_FILE%...
     msiexec /i "%MSI_FILE%" /qn
@@ -243,34 +245,35 @@ if exist "%download_dir%\X64" if exist "%download_dir%\Docs" if exist "%download
 ) else (
   echo One or more directories are missing.
   REM Define the GitHub repository
-  set "repository=acidanthera/OpenCorePkg"
+  set repository=acidanthera/OpenCorePkg
   REM Get the latest release information from the GitHub API
-  for /f "usebackq tokens=2 delims=: " %%A in (`curl -s "https://api.github.com/repos/%repository%/releases/latest" ^| findstr "browser_download_url"`) do (
-    set "download_url=%%~A"
-  )
+  for /F "usebackq delims=" %%G in (`curl -s "https://api.github.com/repos/%repository%/releases/latest"`) do set "release_info=%%G"
+  REM Filter out debug assets
+  for /F "tokens=1,2,*" %%A in ('echo %release_info% ^| jq -r ".assets | map(select(.name | test(\"DEBUG\"; \"i\") | not)) | .[0].browser_download_url"') do set "download_url=%%C"
   REM Extract the file name from the download URL
-  for %%B in ("%download_url%") do set "file_name=%%~nxB"
+  for %%F in ("%download_url%") do set "file_name=%%~nxF"
   REM Define the destination file path
   set "destination_path=%download_dir%\%file_name%"
   REM Download the latest OpenCore zip file
   curl -L -o "%destination_path%" "%download_url%"
+
   REM Check if X64 directory is missing
   if not exist "%download_dir%\X64" (
     REM Unzip X64 directory from OpenCore
-    7z x "%destination_path%" -o"%download_dir%" "X64/*"
+    7z x -y "%destination_path%" X64\* -o"%download_dir%"
   )
   REM Check if Docs directory is missing
   if not exist "%download_dir%\Docs" (
     REM Unzip Docs directory from OpenCore
-    7z x "%destination_path%" -o"%download_dir%" "Docs/*"
+    7z x -y "%destination_path%" Docs\* -o"%download_dir%"
   )
   REM Check if Utilities directory is missing
   if not exist "%download_dir%\Utilities" (
     REM Unzip Utilities directory from OpenCore
-    7z x "%destination_path%" -o"%download_dir%" "Utilities/*"
+    7z x -y "%destination_path%" Utilities\* -o"%download_dir%"
   )
   REM Clean up
-  del "%destination_path%"
+  del "%destination_path%" 2>nul
 )
 
 REM Source folder
