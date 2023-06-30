@@ -95,9 +95,9 @@ if [ ! -d "$download_dir" ]; then
   mkdir "$download_dir"
 fi
 
-system_dir="$script_dir/system-files"
-if [ ! -d "$system_dir" ]; then
-  mkdir "$system_dir"
+systemdir="$script_dir/system-files"
+if [ ! -d "$systemdir" ]; then
+  mkdir "$systemdir"
 fi
 
 # Function to create certificate and key
@@ -203,7 +203,7 @@ else
 fi
 
 # Source folder
-src_folder="$system_dir"
+src_folder="$systemdir"
 # Destination folder
 dest_folder="$download_dir/X64/EFI/OC"
 # Copy files with overwrite
@@ -235,8 +235,8 @@ install_without_secure_boot() {
   efi_partition=$(findmnt -n -o SOURCE -T /boot/efi)
   # Mount the EFI partition
   sudo mount "$efi_partition" /mnt
-  # Copy files from X64-Signed folder to the EFI partition
-  sudo cp -R "$download_dir/X64"* /mnt
+  # Copy files from EFI folder to the EFI partition
+  sudo cp -R "$download_dir/X64/EFI"/* /mnt/EFI/
   # Set the description for the boot option
   BOOT_OPTION_DESC="Opencore Bootloader"
   # Set the path to the Opencore bootloader in the EFI partition
@@ -253,36 +253,35 @@ install_without_secure_boot() {
   sudo umount /mnt
 }
 
-# Function to install OpenCore with secure boot
 install_with_secure_boot() {
   # add .auth files into uefi firmware
   # Check if the PK.auth file is already imported
-sudo mokutil --test-key "$efikeys_dir/PK.auth"
-pk_imported=$?
-# Check if the KEK.auth file is already imported
-sudo mokutil --test-key "$efikeys_dir/KEK.auth"
-kek_imported=$?
-# Check if the db.auth file is already imported
-sudo mokutil --test-key "$efikeys_dir/db.auth"
-db_imported=$?
-# Import the PK.auth file if not already imported
-if [[ $pk_imported -ne 0 ]]; then
-  sudo mokutil --import "$efikeys_dir/PK.auth"
-fi
-# Import the KEK.auth file if not already imported
-if [[ $kek_imported -ne 0 ]]; then
-  sudo mokutil --import "$efikeys_dir/KEK.auth"
-fi
-# Import the db.auth file if not already imported
-if [[ $db_imported -ne 0 ]]; then
-  sudo mokutil --import "$efikeys_dir/db.auth"
-fi
+  sudo mokutil --test-key "$efikeys_dir/PK.auth"
+  pk_imported=$?
+  # Check if the KEK.auth file is already imported
+  sudo mokutil --test-key "$efikeys_dir/KEK.auth"
+  kek_imported=$?
+  # Check if the db.auth file is already imported
+  sudo mokutil --test-key "$efikeys_dir/db.auth"
+  db_imported=$?
+  # Import the PK.auth file if not already imported
+  if [[ $pk_imported -ne 0 ]]; then
+    sudo mokutil --import "$efikeys_dir/PK.auth"
+  fi
+  # Import the KEK.auth file if not already imported
+  if [[ $kek_imported -ne 0 ]]; then
+    sudo mokutil --import "$efikeys_dir/KEK.auth"
+  fi
+  # Import the db.auth file if not already imported
+  if [[ $db_imported -ne 0 ]]; then
+    sudo mokutil --import "$efikeys_dir/db.auth"
+  fi
   # Find the EFI partition
   efi_partition=$(findmnt -n -o SOURCE -T /boot/efi)
   # Mount the EFI partition
   sudo mount "$efi_partition" /mnt
-  # Copy files from X64-Signed folder to the EFI partition
-  sudo cp -R "$download_dir/X64-Signed"* /mnt
+  # Copy files from EFI folder in X64-Signed directory to the EFI partition
+  sudo cp -R "$download_dir/X64-Signed/EFI"/* /mnt/EFI/
   # Set the description for the boot option
   BOOT_OPTION_DESC="Opencore Bootloader"
   # Set the path to the Opencore bootloader in the EFI partition
@@ -290,10 +289,10 @@ fi
   # Check if the boot option already exists
   existing_boot_option=$(sudo efibootmgr | grep "$BOOT_OPTION_DESC")
   if [[ -z "$existing_boot_option" ]]; then
-      # Add the boot option using efibootmgr
-      sudo efibootmgr --create --label "$BOOT_OPTION_DESC" --disk "$efi_partition" --loader "$EFI_PATH" --verbose --bootnum 0000
+    # Add the boot option using efibootmgr
+    sudo efibootmgr --create --label "$BOOT_OPTION_DESC" --disk "$efi_partition" --loader "$EFI_PATH" --verbose --bootnum 0000
   else
-      echo "Opencore boot option already exists."
+    echo "Opencore boot option already exists."
   fi
   # Unmount the EFI partition
   sudo umount /mnt
