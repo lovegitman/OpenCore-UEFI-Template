@@ -318,82 +318,83 @@ echo anything inside system-files will be added to Download\X64\EFI\OC\
 choice /C 123 /N
 
 if errorlevel 3 (
-echo Skipping OpenCore installation.
+    echo Skipping OpenCore installation.
 ) else if errorlevel 2 (
-REM Find the EFI partition
-for /f "tokens=2 delims==" %%I in ('wmic volume where "BootVolume=true" get DeviceID /value') do set "efi_partition=%%I"
-REM Mount the EFI partition
-mountvol %efi_partition% /d
-mountvol %efi_partition% /s
-REM Copy files from X64-Signed folder to the EFI partition
-xcopy /E /I /Y "%download_dir%\X64" "%efi_partition%\EFI\OC"
-REM Set the description for the boot option
-set "BOOT_OPTION_DESC=Opencore Bootloader"
-REM Set the path to the Opencore bootloader in the EFI partition
-set "EFI_PATH=\EFI\OC\OpenCore.efi"
-REM Check if the boot option already exists
-set "existing_boot_option="
-for /f "tokens=*" %%A in ('bcdedit /enum firmware') do (
-  echo %%A | findstr /i "%BOOT_OPTION_DESC%" >nul
-  if not errorlevel 1 set "existing_boot_option=1"
-)
-if "%existing_boot_option%"=="1" (
-  echo Opencore boot option already exists.
-) else (
-  REM Add the boot option using bcdedit
-  bcdedit /create /d "%BOOT_OPTION_DESC%" /application bootsector
-  for /f "tokens=2 delims={}" %%B in ('bcdedit /enum firmware ^| findstr /i "{bootmgr}"') do set "bootmgr_guid=%%B"
-  bcdedit /set %bootmgr_guid% description "%BOOT_OPTION_DESC%"
-  bcdedit /set %bootmgr_guid% path "%EFI_PATH%"
-  bcdedit /displayorder %bootmgr_guid% /addlast
-)
-REM Unmount the EFI partition
-mountvol %efi_partition% /d
+    REM Find the EFI partition
+    for /f "tokens=2 delims==" %%I in ('wmic volume where "BootVolume=true" get DeviceID /value') do set "efi_partition=%%I"
+    REM Mount the EFI partition
+    mountvol %efi_partition% /d
+    mountvol %efi_partition% /s
+    REM Copy files from X64-Signed folder to the EFI partition
+    xcopy /E /I /Y "%download_dir%\X64" "%efi_partition%\EFI\OC"
+    REM Set the description for the boot option
+    set "BOOT_OPTION_DESC=Opencore Bootloader"
+    REM Set the path to the Opencore bootloader in the EFI partition
+    set "EFI_PATH=\EFI\OC\OpenCore.efi"
+    REM Check if the boot option already exists
+    set "existing_boot_option="
+    for /f "tokens=*" %%A in ('bcdedit /enum firmware') do (
+        echo %%A | findstr /i "%BOOT_OPTION_DESC%" >nul
+        if not errorlevel 1 set "existing_boot_option=1"
+    )
+    if "%existing_boot_option%"=="1" (
+        echo Opencore boot option already exists.
+    ) else (
+        REM Add the boot option using bcdedit
+        bcdedit /create /d "%BOOT_OPTION_DESC%" /application bootsector
+        for /f "tokens=2 delims={}" %%B in ('bcdedit /enum firmware ^| findstr /i "{bootmgr}"') do set "bootmgr_guid=%%B"
+        bcdedit /set %bootmgr_guid% description "%BOOT_OPTION_DESC%"
+        bcdedit /set %bootmgr_guid% path "%EFI_PATH%"
+        bcdedit /displayorder %bootmgr_guid% /addlast
+    )
+    REM Unmount the EFI partition
+    mountvol %efi_partition% /d
 ) else if errorlevel 1 (
-REM add .auth files into uefi firmware
-REM Check if the PK.auth file is already imported
-powershell -Command "& { if (Test-SecureBootUEFIFirmware -PKAuthFile '%efikeys_dir%\PK.auth') { exit 0 } else { exit 1 } }"
-if "%errorlevel%"=="1" (
-  powershell -Command "& { Import-SecureBootUEFIFirmware -PKAuthFile '%efikeys_dir%\PK.auth' }"
+    REM add .auth files into UEFI firmware
+    REM Check if the PK.auth file is already imported
+    powershell -Command "& { if (Test-SecureBootUEFIFirmware -PKAuthFile '%efikeys_dir%\PK.auth') { exit 0 } else { exit 1 } }"
+    if "%errorlevel%"=="1" (
+        powershell -Command "& { Import-SecureBootUEFIFirmware -PKAuthFile '%efikeys_dir%\PK.auth' }"
+    )
+    REM Check if the KEK.auth file is already imported
+    powershell -Command "& { if (Test-SecureBootUEFIFirmware -KEKAuthFile '%efikeys_dir%\KEK.auth') { exit 0 } else { exit 1 } }"
+    if "%errorlevel%"=="1" (
+        powershell -Command "& { Import-SecureBootUEFIFirmware -KEKAuthFile '%efikeys_dir%\KEK.auth' }"
+    )
+    REM Check if the db.auth file is already imported
+    powershell -Command "& { if (Test-SecureBootUEFIFirmware -DBAuthFile '%efikeys_dir%\db.auth') { exit 0 } else { exit 1 } }"
+    if "%errorlevel%"=="1" (
+        powershell -Command "& { Import-SecureBootUEFIFirmware -DBAuthFile '%efikeys_dir%\db.auth' }"
+    )
+    REM Find the EFI partition
+    for /f "tokens=2 delims==" %%I in ('wmic volume where "BootVolume=true" get DeviceID /value') do set "efi_partition=%%I"
+    REM Mount the EFI partition
+    mountvol %efi_partition% /d
+    mountvol %efi_partition% /s
+    REM Copy files from X64-Signed folder to the EFI partition
+    xcopy /E /I /Y "%download_dir%\X64-Signed" "%efi_partition%\EFI\OC"
+    REM Set the description for the boot option
+    set "BOOT_OPTION_DESC=Opencore Bootloader"
+    REM Set the path to the Opencore bootloader in the EFI partition
+    set "EFI_PATH=\EFI\OC\OpenCore.efi"
+    REM Check if the boot option already exists
+    set "existing_boot_option="
+    for /f "tokens=*" %%A in ('bcdedit /enum firmware') do (
+        echo %%A | findstr /i "%BOOT_OPTION_DESC%" >nul
+        if not errorlevel 1 set "existing_boot_option=1"
+    )
+    if "%existing_boot_option%"=="1" (
+        echo Opencore boot option already exists.
+    ) else (
+        REM Add the boot option using bcdedit
+        bcdedit /create /d "%BOOT_OPTION_DESC%" /application bootsector
+        for /f "tokens=2 delims={}" %%B in ('bcdedit /enum firmware ^| findstr /i "{bootmgr}"') do set "bootmgr_guid=%%B"
+        bcdedit /set %bootmgr_guid% description "%BOOT_OPTION_DESC%"
+        bcdedit /set %bootmgr_guid% path "%EFI_PATH%"
+        bcdedit /displayorder %bootmgr_guid% /addlast
+    )
+    REM Unmount the EFI partition
+    mountvol %efi_partition% /d
 )
-REM Check if the KEK.auth file is already imported
-powershell -Command "& { if (Test-SecureBootUEFIFirmware -KEKAuthFile '%efikeys_dir%\KEK.auth') { exit 0 } else { exit 1 } }"
-if "%errorlevel%"=="1" (
-  powershell -Command "& { Import-SecureBootUEFIFirmware -KEKAuthFile '%efikeys_dir%\KEK.auth' }"
-)
-REM Check if the db.auth file is already imported
-powershell -Command "& { if (Test-SecureBootUEFIFirmware -DBAuthFile '%efikeys_dir%\db.auth') { exit 0 } else { exit 1 } }"
-if "%errorlevel%"=="1" (
-  powershell -Command "& { Import-SecureBootUEFIFirmware -DBAuthFile '%efikeys_dir%\db.auth' }"
-)
-REM Find the EFI partition
-for /f "tokens=2 delims==" %%I in ('wmic volume where "BootVolume=true" get DeviceID /value') do set "efi_partition=%%I"
-REM Mount the EFI partition
-mountvol %efi_partition% /d
-mountvol %efi_partition% /s
-REM Copy files from X64-Signed folder to the EFI partition
-xcopy /E /I /Y "%download_dir%\X64-Signed" "%efi_partition%\EFI\OC"
-REM Set the description for the boot option
-set "BOOT_OPTION_DESC=Opencore Bootloader"
-REM Set the path to the Opencore bootloader in the EFI partition
-set "EFI_PATH=\EFI\OC\OpenCore.efi"
-REM Check if the boot option already exists
-set "existing_boot_option="
-for /f "tokens=*" %%A in ('bcdedit /enum firmware') do (
-  echo %%A | findstr /i "%BOOT_OPTION_DESC%" >nul
-  if not errorlevel 1 set "existing_boot_option=1"
-)
-if "%existing_boot_option%"=="1" (
-  echo Opencore boot option already exists.
-) else (
-  REM Add the boot option using bcdedit
-  bcdedit /create /d "%BOOT_OPTION_DESC%" /application bootsector
-  for /f "tokens=2 delims={}" %%B in ('bcdedit /enum firmware ^| findstr /i "{bootmgr}"') do set "bootmgr_guid=%%B"
-  bcdedit /set %bootmgr_guid% description "%BOOT_OPTION_DESC%"
-  bcdedit /set %bootmgr_guid% path "%EFI_PATH%"
-  bcdedit /displayorder %bootmgr_guid% /addlast
-)
-REM Unmount the EFI partition
-mountvol %efi_partition% /d
-)
+
 endlocal
