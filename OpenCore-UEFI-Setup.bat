@@ -248,15 +248,14 @@ if exist "%download_dir%\X64" if exist "%download_dir%\Docs" if exist "%download
   set repository=acidanthera/OpenCorePkg
   REM Get the latest release information from the GitHub API
   for /F "usebackq delims=" %%G in (`curl -s "https://api.github.com/repos/%repository%/releases/latest"`) do set "release_info=%%G"
-  REM Filter out debug assets
-  for /F "tokens=1,2,*" %%A in ('echo %release_info% ^| jq -r ".assets | map(select(.name | test(\"DEBUG\"; \"i\") | not)) | .[0].browser_download_url"') do set "download_url=%%C"
+  REM Filter out debug assets using PowerShell
+  for /F "usebackq tokens=*" %%A in (`powershell -Command "$json = '%release_info%'; $json | ConvertFrom-Json | Select-Object -ExpandProperty assets | Where-Object { $_.name -notmatch 'DEBUG' } | Select-Object -First 1 | Select-Object -ExpandProperty browser_download_url"`) do set "download_url=%%A"
   REM Extract the file name from the download URL
   for %%F in ("%download_url%") do set "file_name=%%~nxF"
   REM Define the destination file path
   set "destination_path=%download_dir%\%file_name%"
   REM Download the latest OpenCore zip file
   curl -L -o "%destination_path%" "%download_url%"
-
   REM Check if X64 directory is missing
   if not exist "%download_dir%\X64" (
     REM Unzip X64 directory from OpenCore
