@@ -116,9 +116,7 @@ IF %ERRORLEVEL% NEQ 0 (
     curl -o "%MSI_FILE%" "%URL%"
     fi
 
-    echo Installing %MSI_FILE%...
     msiexec /i "%MSI_FILE%" /qn
-    del "%MSI_FILE%"
 
     REM Check if installation was successful
     where signtool > nul 2>&1
