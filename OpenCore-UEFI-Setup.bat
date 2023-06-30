@@ -256,6 +256,7 @@ if exist "%download_dir%\X64" if exist "%download_dir%\Docs" if exist "%download
   set "destination_path=%download_dir%\%file_name%"
   REM Download the latest OpenCore zip file
   curl -L -o "%destination_path%" "%download_url%"
+
   REM Check if X64 directory is missing
   if not exist "%download_dir%\X64" (
     REM Unzip X64 directory from OpenCore
