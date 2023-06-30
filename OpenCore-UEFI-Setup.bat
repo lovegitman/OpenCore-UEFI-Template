@@ -192,7 +192,7 @@ if not exist "%efikeys_dir%\ISK.key" (
 
 REM Create PFX
 if not exist "%efikeys_dir%\ISK.pfx" (
-openssl pkcs12 -export -out "%efikeys_dir%\ISK.pfx" -inkey "%efikeys_dir%\ISK.key" -in "%efikeys_dir%\ISK.pem"
+openssl pkcs12 -export -out "%efikeys_dir%\ISK.pfx" -inkey "%efikeys_dir%\ISK.key" -in "%efikeys_dir%\ISK.pem" -passout pass:
 )
 
 REM Permission for key files
