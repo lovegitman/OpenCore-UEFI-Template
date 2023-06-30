@@ -324,8 +324,8 @@ if errorlevel 3 (
     REM Mount the EFI partition
     mountvol %efi_partition% /d
     mountvol %efi_partition% /s
-    REM Copy files from X64-Signed folder to the EFI partition
-    xcopy /E /I /Y "%download_dir%\X64" "%efi_partition%\EFI\OC"
+    REM Copy files from X64 folder to the EFI partition
+    xcopy /E /I /Y "%download_dir%\X64\EFI\*" "%efi_partition%\EFI"
     REM Set the description for the boot option
     set "BOOT_OPTION_DESC=Opencore Bootloader"
     REM Set the path to the Opencore bootloader in the EFI partition
@@ -371,7 +371,7 @@ if errorlevel 3 (
     mountvol %efi_partition% /d
     mountvol %efi_partition% /s
     REM Copy files from X64-Signed folder to the EFI partition
-    xcopy /E /I /Y "%download_dir%\X64-Signed" "%efi_partition%\EFI\OC"
+    xcopy /E /I /Y "%download_dir%\X64-Signed\EFI\*" "%efi_partition%\EFI"
     REM Set the description for the boot option
     set "BOOT_OPTION_DESC=Opencore Bootloader"
     REM Set the path to the Opencore bootloader in the EFI partition
