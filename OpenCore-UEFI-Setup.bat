@@ -238,45 +238,6 @@ if not exist "%efikeys_dir%\db.auth" (
 set ISK_key="%efikeys_dir%\ISK.key"
 set ISK_pem="%efikeys_dir%\ISK.pem"
 
-REM Check if all three directories (X64, Docs, Utilities) exist
-if exist "%download_dir%\X64" if exist "%download_dir%\Docs" if exist "%download_dir%\Utilities" (
-  echo All three directories (X64, Docs, Utilities) exist.
-  REM Add your desired code here when all directories exist
-) else (
-  echo One or more directories are missing.
-  REM Define the GitHub repository
-  set "repository=acidanthera/OpenCorePkg"
-  REM Get the latest release information from the GitHub API
-  for /F "usebackq delims=" %%G in (`curl -s "https://api.github.com/repos/%repository%/releases/latest"`) do set "release_info=%%G"
-  REM Filter out debug assets using PowerShell
-  for /F "usebackq tokens=*" %%A in (`powershell -Command "$json = '%release_info%'; $json | ConvertFrom-Json | Select-Object -ExpandProperty assets | Where-Object { $_.name -notmatch 'DEBUG' } | Select-Object -First 1 | Select-Object -ExpandProperty browser_download_url"`) do set "download_url=%%A"
-  REM Extract the file name from the download URL
-  for %%F in ("%download_url%") do set "file_name=%%~nxF"
-  REM Define the destination file path
-  set "destination_path=%download_dir%\%file_name%"
-
-  REM Download the latest OpenCore zip file
-  curl -L -o "%destination_path%" "%download_url%"
-
-  REM Check if X64 directory is missing
-  if not exist "%download_dir%\X64" (
-    REM Unzip X64 directory from OpenCore
-    7z x -y "%destination_path%" -o"%download_dir%" X64\*
-  )
-  REM Check if Docs directory is missing
-  if not exist "%download_dir%\Docs" (
-    REM Unzip Docs directory from OpenCore
-    7z x -y "%destination_path%" -o"%download_dir%" Docs\*
-  )
-  REM Check if Utilities directory is missing
-  if not exist "%download_dir%\Utilities" (
-    REM Unzip Utilities directory from OpenCore
-    7z x -y "%destination_path%" -o"%download_dir%" Utilities\*
-  )
-  REM Clean up
-  del "%destination_path%" 2>nul
-)
-
 REM Source folder
 set "src_folder=%systemdir%"
 REM Destination folder
@@ -299,8 +260,8 @@ set "dest_folder=%X64_Signed%"
 REM Copy files with overwrite
 xcopy /E /Y "%src_folder%\*" "%dest_folder%"
 
-REM Sign .efi .kext files in X64-Signed directory and subdirectories
-for /R "%X64_Signed%" %%G in (*.efi, *.kext) do (
+REM Sign .efi files in X64-Signed directory and subdirectories
+for /R "%X64_Signed%" %%G in (*.efi) do (
     signtool sign /f "%efikeys_dir%\ISK.pfx" /td sha256 /fd sha256 /v "%%G"
 )
 
