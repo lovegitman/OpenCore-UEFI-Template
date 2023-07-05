@@ -238,6 +238,37 @@ if not exist "%efikeys_dir%\db.auth" (
 set ISK_key="%efikeys_dir%\ISK.key"
 set ISK_pem="%efikeys_dir%\ISK.pem"
 
+REM Check if all three directories (X64, Docs, Utilities) exist
+if not exist "%download_dir%\X64" if not exist "%download_dir%\Docs" if not exist "%download_dir%\Utilities" (
+    echo One or more directories do not exist.
+    rem Add your commands here to handle the case when one or more directories are missing
+    set "github_api=https://api.github.com/repos/acidanthera/OpenCorePkg/releases/latest"
+    for /f "usebackq tokens=*" %%G in (`curl -s "%github_api%" ^| findstr /C:"\"tag_name\":"`) do (
+    set "latest_release=%%G"
+    )
+    for /f "tokens=2 delims=:" %%G in ("%latest_release%") do (
+    set "latest_version=%%~G"
+    )
+    set "download_url=https://github.com/acidanthera/OpenCorePkg/releases/download/%latest_version%/OpenCore-%latest_version%-RELEASE.zip"
+    set "destination_path=%download_dir%\OpenCore-%latest_version%-RELEASE.zip"
+    curl -L -o "%destination_path%" "%download_url%"
+    rem Extract the directories X64, Docs, and Utilities from the downloaded zip file
+    if not exist "%download_dir%\X64" (
+    powershell -Command "Expand-Archive -Path '%destination_path%' -DestinationPath '%download_dir%' -Include 'X64/*' -Force"
+    )
+    if not exist "%download_dir%\Docs" (
+    powershell -Command "Expand-Archive -Path '%destination_path%' -DestinationPath '%download_dir%' -Include 'Docs/*' -Force"
+    )
+    if not exist "%download_dir%\Utilities" (
+    powershell -Command "Expand-Archive -Path '%destination_path%' -DestinationPath '%download_dir%' -Include 'Utilities/*' -Force"
+    )
+    rem Delete the downloaded ZIP file
+    del "%destination_path%"
+) else (
+    echo All three directories exist.
+    rem Add your commands here to handle the case when all three directories exist
+)
+
 REM Source folder
 set "src_folder=%systemdir%"
 REM Destination folder
@@ -262,18 +293,18 @@ xcopy /E /Y "%src_folder%\*" "%dest_folder%"
 
 REM Sign .efi files in X64-Signed directory and subdirectories
 for /R "%X64_Signed%" %%G in (*.efi) do (
-    signtool sign /f "%efikeys_dir%\ISK.pfx" /td sha256 /fd sha256 /v "%%G"
+signtool sign /f "%efikeys_dir%\ISK.pfx" /td sha256 /fd sha256 /v "%%G"
 )
 
 REM Prompt user for installation type
 echo OpenCore Installation
+echo BEFORE INSTALL MUST MODIFY system-files FOLDER FOR YOUR SYSTEM
+echo anything inside system-files will be added to Download\X64\EFI\OC\
 echo ---------------------
 echo Please select the installation type:
 echo 1. Install with secure boot
 echo 2. Install without secure boot
 echo 3. Do not install OpenCore
-echo BEFORE INSTALL MUST MODIFY system-files FOLDER FOR YOUR SYSTEM
-echo anything inside system-files will be added to Download\X64\EFI\OC\
 
 choice /C 123 /N
 
